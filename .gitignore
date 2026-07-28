@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# OS & editors
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+.idea/
+.vscode/
+*.log
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Build / cache
+.vercel/
+dist/
+.cache/
+
+# Local reference only
+xcmg.md
+profile.md
+
+# ---------------------------------------------------------------------------
+# Not used by the live GitHub Pages site (media lives under pic/)
+# ---------------------------------------------------------------------------
+DAILY/
+PUMP TRUCK/**
+!PUMP TRUCK/ZOOMLION/
+!PUMP TRUCK/ZOOMLION/LZZ8BMVF2NC441295/
+!PUMP TRUCK/ZOOMLION/LZZ8BMVF2NC441295/241259197e27620a0a48126b18dee82f.mp4
+!PUMP TRUCK/ZOOMLION/LZZ8BMVF2NC441295/6128586bc72c8f6b2e4a8000644bfc3b.mp4
+!PUMP TRUCK/LIUGONG/
+!PUMP TRUCK/LIUGONG/LZZ8BYVF2MC412904/
+!PUMP TRUCK/LIUGONG/LZZ8BYVF2MC412904/8549909ae38eaeea7ccdb58f592b6fd3.mp4
