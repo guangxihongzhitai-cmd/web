@@ -618,6 +618,16 @@ section[id] {
   }
 }
 
+.video-grid-tiktok {
+  justify-items: center;
+}
+
+@media (min-width: 768px) {
+  .video-grid-tiktok {
+    grid-template-columns: 1fr;
+  }
+}
+
 .video-card {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -631,11 +641,34 @@ section[id] {
   background: #000;
 }
 
+.video-card-tiktok {
+  width: 100%;
+  max-width: 325px;
+}
+
+.video-card-tiktok iframe {
+  display: block;
+  width: 100%;
+  height: 730px;
+  border: 0;
+  background: #000;
+}
+
 .video-card-label {
   padding: 0.75rem 1rem;
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.7);
   text-align: center;
+}
+
+.video-card-label a {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.video-card-label a:hover {
+  color: var(--hzt-accent);
 }
 
 /* CTA band --------------------------------------------------------------- */

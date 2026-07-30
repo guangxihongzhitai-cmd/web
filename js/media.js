@@ -83,8 +83,10 @@
     ],
     videos: [
       {
-        src: "video/feb25-pump-truck.mp4",
-        label: "Pump truck yard video",
+        type: "tiktok",
+        id: "7612525934008143111",
+        url: "https://www.tiktok.com/@hongzhitai/video/7612525934008143111",
+        label: "Watch on TikTok @hongzhitai",
       },
     ],
   };
@@ -125,25 +127,38 @@
   function renderVideos() {
     var videosEl = document.getElementById("media-videos");
     if (!videosEl || !global.HZT_MEDIA.videos) return;
-    var poster = global.HZT_MEDIA.hero.poster;
+    videosEl.classList.add("video-grid-tiktok");
     videosEl.innerHTML = global.HZT_MEDIA.videos
       .map(function (item, i) {
         var delay = i > 0 ? " reveal-delay-" + Math.min(i, 3) : "";
+        if (item.type === "tiktok" && item.id) {
+          return (
+            '<div class="video-card video-card-tiktok reveal' +
+            delay +
+            '">' +
+            '<iframe src="https://www.tiktok.com/embed/v2/' +
+            item.id +
+            '" title="HZT TikTok video" allow="encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope" allowfullscreen loading="lazy"></iframe>' +
+            '<p class="video-card-label"><a href="' +
+            (item.url || "https://www.tiktok.com/@hongzhitai") +
+            '" target="_blank" rel="noopener">' +
+            (item.label || "Watch on TikTok") +
+            "</a></p>" +
+            "</div>"
+          );
+        }
         return (
           '<div class="video-card reveal' +
           delay +
           '">' +
           '<video controls preload="metadata" playsinline poster="' +
-          hztSrc(poster) +
-          '">' +
-          '<source src="' +
+          hztSrc(global.HZT_MEDIA.hero.poster) +
+          '"><source src="' +
           hztSrc(item.src) +
-          '" type="video/mp4" />' +
-          "</video>" +
+          '" type="video/mp4" /></video>' +
           '<p class="video-card-label">' +
           item.label +
-          "</p>" +
-          "</div>"
+          "</p></div>"
         );
       })
       .join("");
