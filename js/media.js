@@ -86,7 +86,7 @@
         type: "youtube",
         id: "zYFHj9GAjFc",
         url: "https://youtube.com/shorts/zYFHj9GAjFc",
-        label: "Watch on YouTube Shorts",
+        label: "Open on YouTube Shorts",
       },
     ],
   };
@@ -124,59 +124,66 @@
       .join("");
   }
 
+  function bindYoutubePosters(root) {
+    var scope = root || document;
+    scope.querySelectorAll("[data-yt-id]").forEach(function (card) {
+      if (card.getAttribute("data-yt-bound") === "1") return;
+      card.setAttribute("data-yt-bound", "1");
+      var btn = card.querySelector(".yt-poster");
+      if (!btn) return;
+      btn.addEventListener("click", function () {
+        var id = card.getAttribute("data-yt-id");
+        if (!id) return;
+        var wrap = document.createElement("div");
+        wrap.className = "yt-frame-wrap";
+        wrap.innerHTML =
+          '<iframe src="https://www.youtube-nocookie.com/embed/' +
+          id +
+          '?autoplay=1&rel=0&modestbranding=1" title="HZT YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+        btn.replaceWith(wrap);
+      });
+    });
+  }
+
   function renderVideos() {
     var videosEl = document.getElementById("media-videos");
     if (!videosEl || !global.HZT_MEDIA.videos) return;
     videosEl.classList.add("video-grid-embed");
     videosEl.innerHTML = global.HZT_MEDIA.videos
-      .map(function (item, i) {
-        var delay = i > 0 ? " reveal-delay-" + Math.min(i, 3) : "";
+      .map(function (item) {
         if (item.type === "youtube" && item.id) {
+          var watchUrl = item.url || "https://www.youtube.com/shorts/" + item.id;
           return (
-            '<div class="video-card video-card-youtube reveal' +
-            delay +
-            '">' +
-            '<iframe src="https://www.youtube.com/embed/' +
+            '<div class="video-card video-card-youtube is-visible" data-yt-id="' +
             item.id +
-            '" title="HZT YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>' +
-            '<p class="video-card-label"><a href="' +
-            (item.url || "https://youtube.com/shorts/" + item.id) +
-            '" target="_blank" rel="noopener">' +
-            (item.label || "Watch on YouTube") +
-            "</a></p>" +
-            "</div>"
-          );
-        }
-        if (item.type === "tiktok" && item.id) {
-          return (
-            '<div class="video-card video-card-youtube reveal' +
-            delay +
             '">' +
-            '<iframe src="https://www.tiktok.com/embed/v2/' +
+            '<button type="button" class="yt-poster" aria-label="Play YouTube video">' +
+            '<img src="https://i.ytimg.com/vi/' +
             item.id +
-            '" title="HZT TikTok video" allow="encrypted-media; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>' +
+            '/hqdefault.jpg" alt="HZT YouTube video" width="480" height="360" loading="lazy" />' +
+            '<span class="yt-play" aria-hidden="true"><i class="fa-solid fa-play"></i></span>' +
+            "</button>" +
             '<p class="video-card-label"><a href="' +
-            (item.url || "#") +
+            watchUrl +
             '" target="_blank" rel="noopener">' +
-            (item.label || "Watch on TikTok") +
+            (item.label || "Open on YouTube Shorts") +
             "</a></p></div>"
           );
         }
         return (
-          '<div class="video-card reveal' +
-          delay +
-          '">' +
+          '<div class="video-card is-visible">' +
           '<video controls preload="metadata" playsinline poster="' +
           hztSrc(global.HZT_MEDIA.hero.poster) +
           '"><source src="' +
           hztSrc(item.src) +
           '" type="video/mp4" /></video>' +
           '<p class="video-card-label">' +
-          item.label +
+          (item.label || "") +
           "</p></div>"
         );
       })
       .join("");
+    bindYoutubePosters(videosEl);
   }
 
   global.hztApplyMedia = function () {

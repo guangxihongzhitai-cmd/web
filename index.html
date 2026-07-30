@@ -356,20 +356,16 @@
         <header class="text-center max-w-2xl mx-auto mb-14 reveal">
           <span class="section-label text-hzt-accent">Field Media</span>
           <h2 class="section-title text-white">Equipment In Action</h2>
-          <p class="mt-4 text-white/60">Watch on YouTube — fast streaming worldwide</p>
+          <p class="mt-4 text-white/60">Watch on YouTube — tap play to load</p>
         </header>
         <div id="media-videos" class="video-grid video-grid-embed">
-          <div class="video-card video-card-youtube reveal">
-            <iframe
-              src="https://www.youtube.com/embed/zYFHj9GAjFc"
-              title="HZT YouTube Shorts — pump truck video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowfullscreen
-              loading="lazy"
-              referrerpolicy="strict-origin-when-cross-origin"
-            ></iframe>
+          <div class="video-card video-card-youtube is-visible" data-yt-id="zYFHj9GAjFc">
+            <button type="button" class="yt-poster" aria-label="Play YouTube video">
+              <img src="https://i.ytimg.com/vi/zYFHj9GAjFc/hqdefault.jpg" alt="HZT pump truck YouTube Shorts" width="480" height="360" loading="lazy" />
+              <span class="yt-play" aria-hidden="true"><i class="fa-solid fa-play"></i></span>
+            </button>
             <p class="video-card-label">
-              <a href="https://youtube.com/shorts/zYFHj9GAjFc" target="_blank" rel="noopener">Watch on YouTube Shorts</a>
+              <a href="https://www.youtube.com/shorts/zYFHj9GAjFc" target="_blank" rel="noopener">Open on YouTube Shorts</a>
             </p>
           </div>
         </div>
