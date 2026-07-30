@@ -618,12 +618,12 @@ section[id] {
   }
 }
 
-.video-grid-tiktok {
+.video-grid-embed {
   justify-items: center;
 }
 
 @media (min-width: 768px) {
-  .video-grid-tiktok {
+  .video-grid-embed {
     grid-template-columns: 1fr;
   }
 }
@@ -641,15 +641,17 @@ section[id] {
   background: #000;
 }
 
-.video-card-tiktok {
+.video-card-youtube {
   width: 100%;
-  max-width: 325px;
+  max-width: 360px;
 }
 
-.video-card-tiktok iframe {
+.video-card-youtube iframe {
   display: block;
   width: 100%;
-  height: 730px;
+  aspect-ratio: 9 / 16;
+  height: auto;
+  min-height: 560px;
   border: 0;
   background: #000;
 }

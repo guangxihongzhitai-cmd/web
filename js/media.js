@@ -83,10 +83,10 @@
     ],
     videos: [
       {
-        type: "tiktok",
-        id: "7612525934008143111",
-        url: "https://www.tiktok.com/@hongzhitai/video/7612525934008143111",
-        label: "Watch on TikTok @hongzhitai",
+        type: "youtube",
+        id: "zYFHj9GAjFc",
+        url: "https://youtube.com/shorts/zYFHj9GAjFc",
+        label: "Watch on YouTube Shorts",
       },
     ],
   };
@@ -127,24 +127,39 @@
   function renderVideos() {
     var videosEl = document.getElementById("media-videos");
     if (!videosEl || !global.HZT_MEDIA.videos) return;
-    videosEl.classList.add("video-grid-tiktok");
+    videosEl.classList.add("video-grid-embed");
     videosEl.innerHTML = global.HZT_MEDIA.videos
       .map(function (item, i) {
         var delay = i > 0 ? " reveal-delay-" + Math.min(i, 3) : "";
+        if (item.type === "youtube" && item.id) {
+          return (
+            '<div class="video-card video-card-youtube reveal' +
+            delay +
+            '">' +
+            '<iframe src="https://www.youtube.com/embed/' +
+            item.id +
+            '" title="HZT YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>' +
+            '<p class="video-card-label"><a href="' +
+            (item.url || "https://youtube.com/shorts/" + item.id) +
+            '" target="_blank" rel="noopener">' +
+            (item.label || "Watch on YouTube") +
+            "</a></p>" +
+            "</div>"
+          );
+        }
         if (item.type === "tiktok" && item.id) {
           return (
-            '<div class="video-card video-card-tiktok reveal' +
+            '<div class="video-card video-card-youtube reveal' +
             delay +
             '">' +
             '<iframe src="https://www.tiktok.com/embed/v2/' +
             item.id +
-            '" title="HZT TikTok video" allow="encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope" allowfullscreen loading="lazy"></iframe>' +
+            '" title="HZT TikTok video" allow="encrypted-media; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>' +
             '<p class="video-card-label"><a href="' +
-            (item.url || "https://www.tiktok.com/@hongzhitai") +
+            (item.url || "#") +
             '" target="_blank" rel="noopener">' +
             (item.label || "Watch on TikTok") +
-            "</a></p>" +
-            "</div>"
+            "</a></p></div>"
           );
         }
         return (
