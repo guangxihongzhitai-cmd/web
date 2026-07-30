@@ -29,14 +29,26 @@ xcmg.md
 profile.md
 
 # ---------------------------------------------------------------------------
-# Not used by the live GitHub Pages site (media lives under pic/)
+# Not used by the live GitHub Pages site (media lives under pic/ + video/)
 # ---------------------------------------------------------------------------
 DAILY/
-PUMP TRUCK/**
-!PUMP TRUCK/ZOOMLION/
-!PUMP TRUCK/ZOOMLION/LZZ8BMVF2NC441295/
-!PUMP TRUCK/ZOOMLION/LZZ8BMVF2NC441295/241259197e27620a0a48126b18dee82f.mp4
-!PUMP TRUCK/ZOOMLION/LZZ8BMVF2NC441295/6128586bc72c8f6b2e4a8000644bfc3b.mp4
-!PUMP TRUCK/LIUGONG/
-!PUMP TRUCK/LIUGONG/LZZ8BYVF2MC412904/
-!PUMP TRUCK/LIUGONG/LZZ8BYVF2MC412904/8549909ae38eaeea7ccdb58f592b6fd3.mp4
+PUMP TRUCK/
+
+# Local desktop-control screenshots (not site assets)
+screenshot_*.png
+crop_*.png
+add_*.png
+btn*.png
+dd*.png
+form_*.png
+fields_*.png
+full_*.png
+icons_*.png
+modal.png
+page_mid.png
+right_btns.png
+row_*.png
+type_dd.png
+www_check.png
+after_cname.png
+.vercelignore
