@@ -42,7 +42,7 @@
       excavator: PROD + "liugong-920e-excavator-side.jpg",
       rig: PROD + "xcmg-xr460e-side.jpg",
     },
-    about: ABOUT + "putzmeister-fleet-front.jpg",
+    about: BIG + "xcmg-loader-yard-side.jpg",
     brands: {
       sany: GAL + "sany-benz-60m-left-front.jpg",
       zoomlion: GAL + "zoomlion-sitrak-56m-left-front.jpg",
