@@ -94,8 +94,20 @@
   if (contactForm) {
     contactForm.addEventListener("submit", function (e) {
       e.preventDefault();
-      alert("Thank you! Your inquiry has been received. We will contact you within 24 hours.");
-      contactForm.reset();
+      var name = document.getElementById("name");
+      var email = document.getElementById("email");
+      var equipment = document.getElementById("equipment");
+      var message = document.getElementById("message");
+      var text = [
+        "Hello, I am " + (name && name.value ? name.value : "a customer") + ".",
+        "Equipment: " + (equipment ? equipment.value : ""),
+        message && message.value ? "Details: " + message.value : "",
+        email && email.value ? "Email: " + email.value : "",
+      ].filter(Boolean).join("\n");
+      // Static GitHub Pages has no backend. Route the secondary inquiry to the
+      // same local WhatsApp contact instead of falsely claiming it was stored.
+      window.open("https://wa.me/861355771677?text=" + encodeURIComponent(text), "_blank", "noopener");
+      alert("Your message is ready in WhatsApp. Please send it there for the fastest reply.");
     });
   }
 
