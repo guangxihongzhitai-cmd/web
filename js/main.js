@@ -106,7 +106,7 @@
       ].filter(Boolean).join("\n");
       // Static GitHub Pages has no backend. Route the secondary inquiry to the
       // same local WhatsApp contact instead of falsely claiming it was stored.
-      window.open("https://wa.me/861355771677?text=" + encodeURIComponent(text), "_blank", "noopener");
+      window.open("https://wa.me/8613557716777?text=" + encodeURIComponent(text), "_blank", "noopener");
       alert("Your message is ready in WhatsApp. Please send it there for the fastest reply.");
     });
   }
