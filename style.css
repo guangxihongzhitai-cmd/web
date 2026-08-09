@@ -1005,3 +1005,24 @@ section[id] {
     var(--hzt-gray-100) 100%
   );
 }
+/* Deliberately unobtrusive convenience entry; authentication is server-side. */
+.staff-portal-anchor {
+  position: relative;
+  height: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.staff-portal-anchor a {
+  display: block;
+  width: 14px;
+  height: 10px;
+  color: transparent;
+  opacity: 0;
+  overflow: hidden;
+}
+.staff-portal-anchor a:focus-visible {
+  opacity: 1;
+  color: #f5a623;
+  outline: 2px solid #f5a623;
+}
