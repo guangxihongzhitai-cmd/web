@@ -60,7 +60,7 @@
     if (!messages.length) { box.innerHTML = '<div class="data-placeholder">No messages match the current filters.</div>'; return; }
     messages.forEach(function (message) {
       var item = document.createElement("article"); item.className = "client-message " + (message.direction === "outbound" ? "outbound" : "inbound");
-      var meta = document.createElement("div"); meta.className = "client-message-meta"; meta.textContent = [message.ts_display || message.ts || "", message.direction || "", message.sender_label || ""].filter(Boolean).join(" · ");
+      var meta = document.createElement("div"); meta.className = "client-message-meta"; meta.textContent = [message.ts_display || message.ts || "", message.direction || "", message.sender_label || "", message.dispatch_id ? ("dispatch=" + message.dispatch_id) : "", message.message_id ? ("msg=" + message.message_id) : ""].filter(Boolean).join(" · ");
       var text = document.createElement("div"); text.className = "client-message-text"; text.textContent = message.text || "";
       item.appendChild(meta); item.appendChild(text); box.appendChild(item);
     });
