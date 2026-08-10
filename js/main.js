@@ -153,6 +153,13 @@
 
   var supportForm = document.getElementById("public-support-form");
   var supportMessages = document.getElementById("tbot-chat-messages");
+  // Anonymous identity is long-lived but random.  It is deliberately
+  // separate from the short-lived chat session and never derived from IP.
+  var publicVisitorId = localStorage.getItem("hzt_public_visitor_id");
+  if (!publicVisitorId) {
+    publicVisitorId = "v_" + ((window.crypto && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g, "") : String(Date.now()) + Math.random().toString(16).slice(2));
+    localStorage.setItem("hzt_public_visitor_id", publicVisitorId);
+  }
   var supportSession = sessionStorage.getItem("hzt_support_session");
   if (!supportSession) {
     supportSession = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
@@ -223,7 +230,7 @@
     supportPollInFlight = true;
     fetch("https://api.hongzhtaichina.com/api/clients/chat/poll", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id: supportSession, after_id: lastSupportReplyId })
+      body: JSON.stringify({ session_id: supportSession, visitor_id: publicVisitorId, after_id: lastSupportReplyId })
     }).then(function (response) { return response.ok ? response.json() : null; }).then(function (data) {
       if (!data || !Array.isArray(data.messages)) return;
       data.messages.forEach(function (item) {
@@ -254,7 +261,7 @@
        No gateway secret or internal token is ever present in browser code. */
     fetch("https://api.hongzhtaichina.com/api/clients/chat", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id: supportSession, request_id: requestId, message: message })
+      body: JSON.stringify({ session_id: supportSession, visitor_id: publicVisitorId, request_id: requestId, message: message })
     }).then(function (response) {
       if (!response || !response.ok) {
         stopSupportPending(requestId);
