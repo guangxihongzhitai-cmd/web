@@ -153,17 +153,50 @@
 
   var supportForm = document.getElementById("public-support-form");
   var supportMessages = document.getElementById("tbot-chat-messages");
-  // Anonymous identity is long-lived but random.  It is deliberately
+  // Anonymous identity is long-lived but random. It is deliberately
   // separate from the short-lived chat session and never derived from IP.
-  var publicVisitorId = localStorage.getItem("hzt_public_visitor_id");
+  // Safari/iPad privacy mode and blocked storage can throw synchronously from
+  // both getItem and setItem. Storage failure must not abort the rest of the
+  // customer-chat bootstrap; the in-memory fallback keeps this page usable.
+  function safeStorage(name) {
+    try {
+      var store = window[name];
+      if (!store) return null;
+      var probe = "__hzt_probe__";
+      store.setItem(probe, "1");
+      store.removeItem(probe);
+      return store;
+    } catch (e) {
+      return null;
+    }
+  }
+  function safeGet(store, key, fallback) {
+    try {
+      var value = store && store.getItem(key);
+      return value || fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+  function safeSet(store, key, value) {
+    try {
+      if (store) store.setItem(key, String(value));
+    } catch (e) {
+      // The browser may reject storage after the initial probe; keep the
+      // in-memory value and continue using the public chat for this page.
+    }
+  }
+  var hztLocalStorage = safeStorage("localStorage");
+  var hztSessionStorage = safeStorage("sessionStorage");
+  var publicVisitorId = safeGet(hztLocalStorage, "hzt_public_visitor_id", "");
   if (!publicVisitorId) {
     publicVisitorId = "v_" + ((window.crypto && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g, "") : String(Date.now()) + Math.random().toString(16).slice(2));
-    localStorage.setItem("hzt_public_visitor_id", publicVisitorId);
+    safeSet(hztLocalStorage, "hzt_public_visitor_id", publicVisitorId);
   }
-  var supportSession = sessionStorage.getItem("hzt_support_session");
+  var supportSession = safeGet(hztSessionStorage, "hzt_support_session", "");
   if (!supportSession) {
     supportSession = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
-    sessionStorage.setItem("hzt_support_session", supportSession);
+    safeSet(hztSessionStorage, "hzt_support_session", supportSession);
   }
   function appendSupport(text, kind) {
     if (!supportMessages) return null;
@@ -174,7 +207,7 @@
     supportMessages.scrollTop = supportMessages.scrollHeight;
     return row;
   }
-  var lastSupportReplyId = Number(sessionStorage.getItem("hzt_support_reply_cursor") || 0);
+  var lastSupportReplyId = Number(safeGet(hztSessionStorage, "hzt_support_reply_cursor", "0") || 0);
   var supportPollInFlight = false;
   var seenSupportReplyIds = Object.create(null);
   var pendingSupportRows = Object.create(null);
@@ -241,7 +274,7 @@
         stopPendingForReply(item);
         appendSupport(String(item.body || ""), "from-system");
       });
-      sessionStorage.setItem("hzt_support_reply_cursor", String(lastSupportReplyId));
+      safeSet(hztSessionStorage, "hzt_support_reply_cursor", String(lastSupportReplyId));
     }).catch(function () {}).then(function () {
       supportPollInFlight = false;
     });
