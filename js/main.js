@@ -209,11 +209,11 @@
       body: JSON.stringify({ session_id: supportSession, request_id: requestId, message: message })
     }).then(function (response) {
       if (!response || !response.ok) {
-        appendSupport("The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard.", "from-system");
+        appendSupport("The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard at Beihuaipo, Diyuan Road, Shajing Subdistrict, Jiangnan District, Nanning, Guangxi, China.", "from-system");
       }
       window.setTimeout(pollSupportReplies, 400);
     }).catch(function () {
-      appendSupport("The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard.", "from-system");
+      appendSupport("The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard at Beihuaipo, Diyuan Road, Shajing Subdistrict, Jiangnan District, Nanning, Guangxi, China.", "from-system");
     });
   });
 
