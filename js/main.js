@@ -193,12 +193,6 @@
     });
   });
 
-  var internalTrigger = document.getElementById("internal-entry-trigger");
-  if (internalTrigger) internalTrigger.addEventListener("click", function () {
-    var entered = window.prompt("Internal access password");
-    if (entered === "168861") window.location.assign("./tbot-ui.html");
-  });
-
   var yearEl = document.getElementById("year");
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
