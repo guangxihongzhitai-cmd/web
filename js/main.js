@@ -166,6 +166,23 @@
     supportMessages.appendChild(row);
     supportMessages.scrollTop = supportMessages.scrollHeight;
   }
+  var lastSupportReplyId = Number(sessionStorage.getItem("hzt_support_reply_cursor") || 0);
+  function pollSupportReplies() {
+    fetch("https://api.hongzhtaichina.com/api/clients/chat/poll", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: supportSession, after_id: lastSupportReplyId })
+    }).then(function (response) { return response.ok ? response.json() : null; }).then(function (data) {
+      if (!data || !Array.isArray(data.messages)) return;
+      data.messages.forEach(function (item) {
+        var id = Number(item.id || 0);
+        if (id > lastSupportReplyId) lastSupportReplyId = id;
+        appendSupport(String(item.body || ""), "from-system");
+      });
+      sessionStorage.setItem("hzt_support_reply_cursor", String(lastSupportReplyId));
+    }).catch(function () {});
+  }
+  window.setInterval(pollSupportReplies, 2500);
+  pollSupportReplies();
   if (supportForm) supportForm.addEventListener("submit", function (event) {
     event.preventDefault();
     var field = document.getElementById("public-support-message");
@@ -187,6 +204,7 @@
       } else {
         if (pending) pending.textContent = "The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard.";
       }
+      window.setTimeout(pollSupportReplies, 400);
     }).catch(function () {
       var pending = supportMessages && supportMessages.querySelector(".support-pending:last-child");
       if (pending) pending.textContent = "The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard.";
