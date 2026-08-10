@@ -925,6 +925,7 @@ section[id] {
   z-index: 9989;
   width: min(380px, calc(100vw - 48px));
   max-height: min(520px, calc(100vh - 120px));
+  height: min(520px, calc(100vh - 120px));
   opacity: 0;
   visibility: hidden;
   transform: translateY(16px) scale(0.96);
@@ -960,10 +961,17 @@ section[id] {
 
 .tbot-chat-body {
   flex: 1;
+  min-height: 0;
   padding: 1.25rem;
-  overflow-y: auto;
+  overflow-y: scroll;
   background: #f9fafb;
+  scrollbar-width: auto;
+  scrollbar-color: var(--hzt-primary) #e5e7eb;
 }
+
+.tbot-chat-body::-webkit-scrollbar { width: 10px; }
+.tbot-chat-body::-webkit-scrollbar-track { background: #e5e7eb; }
+.tbot-chat-body::-webkit-scrollbar-thumb { background: var(--hzt-primary); border-radius: 8px; border: 2px solid #e5e7eb; }
 
 .tbot-chat-placeholder {
   text-align: center;
