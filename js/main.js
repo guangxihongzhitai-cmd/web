@@ -174,13 +174,23 @@
     var requestId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
     appendSupport(message, "from-customer");
     field.value = "";
-    appendSupport("Thanks — your message is with our support team. We’ll reply as soon as possible.", "from-system");
+    appendSupport("Sending securely…", "from-system support-pending");
     /* The Cloudflare edge signs this request server-side before forwarding.
        No gateway secret or internal token is ever present in browser code. */
     fetch("https://api.hongzhtaichina.com/api/clients/chat", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: supportSession, request_id: requestId, message: message })
-    }).catch(function () { appendSupport("We couldn’t reach the online channel. Please WhatsApp +8613557716777 or visit our yard.", "from-system"); });
+    }).then(function (response) {
+      var pending = supportMessages && supportMessages.querySelector(".support-pending:last-child");
+      if (response && response.ok) {
+        if (pending) pending.textContent = "Thanks — your message is with our support team. We’ll reply as soon as possible.";
+      } else {
+        if (pending) pending.textContent = "The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard.";
+      }
+    }).catch(function () {
+      var pending = supportMessages && supportMessages.querySelector(".support-pending:last-child");
+      if (pending) pending.textContent = "The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard.";
+    });
   });
 
   var internalTrigger = document.getElementById("internal-entry-trigger");
