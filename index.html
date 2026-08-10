@@ -499,17 +499,17 @@
         <button id="tbot-close-btn" type="button" class="text-white/80 hover:text-white text-xl" aria-label="Close chat"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="tbot-chat-body">
-        <div class="tbot-chat-placeholder" id="tbot-chat-messages">
+        <div class="tbot-chat-messages tbot-chat-placeholder" id="tbot-chat-messages">
           <i class="fa-solid fa-comments"></i>
           <p><strong>How can we help?</strong></p>
           <p class="mt-2">Ask about equipment, availability, inspection records or visiting our yard.</p>
         </div>
-        <form id="public-support-form" class="public-support-form">
-          <label class="sr-only" for="public-support-message">Message</label>
-          <textarea id="public-support-message" rows="2" maxlength="4000" required placeholder="Write your message..."></textarea>
-          <button type="submit" class="btn-primary"><i class="fa-solid fa-paper-plane"></i><span>Send</span></button>
-        </form>
       </div>
+      <form id="public-support-form" class="public-support-form">
+        <label class="sr-only" for="public-support-message">Message</label>
+        <textarea id="public-support-message" rows="2" maxlength="4000" required placeholder="Write your message..."></textarea>
+        <button type="submit" class="btn-primary"><i class="fa-solid fa-paper-plane"></i><span>Send</span></button>
+      </form>
     </div>
   </div>
   <button id="tbot-fab" type="button" class="tbot-fab" aria-label="Open 24H Support" aria-expanded="false">
