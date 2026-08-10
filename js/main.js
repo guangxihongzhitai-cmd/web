@@ -167,7 +167,14 @@
     supportMessages.scrollTop = supportMessages.scrollHeight;
   }
   var lastSupportReplyId = Number(sessionStorage.getItem("hzt_support_reply_cursor") || 0);
+  var supportPollInFlight = false;
+  var seenSupportReplyIds = Object.create(null);
   function pollSupportReplies() {
+    // The timer and the post-submit retry can overlap while Brain is working.
+    // Without a single-flight guard, both requests use the same cursor and
+    // append the same outbound row twice when they return together.
+    if (supportPollInFlight) return;
+    supportPollInFlight = true;
     fetch("https://api.hongzhtaichina.com/api/clients/chat/poll", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: supportSession, after_id: lastSupportReplyId })
@@ -175,11 +182,15 @@
       if (!data || !Array.isArray(data.messages)) return;
       data.messages.forEach(function (item) {
         var id = Number(item.id || 0);
+        if (!id || seenSupportReplyIds[id] || id <= lastSupportReplyId) return;
+        seenSupportReplyIds[id] = true;
         if (id > lastSupportReplyId) lastSupportReplyId = id;
         appendSupport(String(item.body || ""), "from-system");
       });
       sessionStorage.setItem("hzt_support_reply_cursor", String(lastSupportReplyId));
-    }).catch(function () {});
+    }).catch(function () {}).then(function () {
+      supportPollInFlight = false;
+    });
   }
   window.setInterval(pollSupportReplies, 2500);
   pollSupportReplies();
@@ -191,23 +202,18 @@
     var requestId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
     appendSupport(message, "from-customer");
     field.value = "";
-    appendSupport("Sending securely…", "from-system support-pending");
     /* The Cloudflare edge signs this request server-side before forwarding.
        No gateway secret or internal token is ever present in browser code. */
     fetch("https://api.hongzhtaichina.com/api/clients/chat", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: supportSession, request_id: requestId, message: message })
     }).then(function (response) {
-      var pending = supportMessages && supportMessages.querySelector(".support-pending:last-child");
-      if (response && response.ok) {
-        if (pending) pending.textContent = "Thanks — your message is with our support team. We’ll reply as soon as possible.";
-      } else {
-        if (pending) pending.textContent = "The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard.";
+      if (!response || !response.ok) {
+        appendSupport("The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard.", "from-system");
       }
       window.setTimeout(pollSupportReplies, 400);
     }).catch(function () {
-      var pending = supportMessages && supportMessages.querySelector(".support-pending:last-child");
-      if (pending) pending.textContent = "The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard.";
+      appendSupport("The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard.", "from-system");
     });
   });
 
