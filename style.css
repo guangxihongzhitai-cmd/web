@@ -1004,6 +1004,8 @@ section[id] {
 .support-message { text-align:left; margin:.45rem 0; padding:.55rem .7rem; border-radius:7px; font-size:.82rem; line-height:1.45; }
 .support-message.from-customer { background:#dcecff; margin-left:1.4rem; }
 .support-message.from-system { background:#fff; border:1px solid #e5e7eb; margin-right:1.4rem; }
+.support-message.support-pending { color:#64748b; font-style:italic; }
+.support-pending-dots { display:inline-block; min-width:1.5em; letter-spacing:.12em; }
 .staff-portal-anchor { height: 10px; text-align: center; overflow: hidden; }
 .staff-portal-anchor a { display: inline-block; width: 12px; height: 10px; color: transparent; text-decoration: none; opacity: 0.02; }
 .staff-portal-anchor a:focus { opacity: 0.8; color: var(--hzt-accent); outline: 1px dotted var(--hzt-accent); }

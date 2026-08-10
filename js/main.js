@@ -159,16 +159,62 @@
     sessionStorage.setItem("hzt_support_session", supportSession);
   }
   function appendSupport(text, kind) {
-    if (!supportMessages) return;
+    if (!supportMessages) return null;
     var row = document.createElement("p");
     row.className = "support-message " + (kind || "");
     row.textContent = text;
     supportMessages.appendChild(row);
     supportMessages.scrollTop = supportMessages.scrollHeight;
+    return row;
   }
   var lastSupportReplyId = Number(sessionStorage.getItem("hzt_support_reply_cursor") || 0);
   var supportPollInFlight = false;
   var seenSupportReplyIds = Object.create(null);
+  var pendingSupportRows = Object.create(null);
+  var pendingSupportTimers = Object.create(null);
+
+  function startSupportPending(requestId) {
+    var row = document.createElement("p");
+    row.className = "support-message from-system support-pending";
+    row.dataset.requestId = requestId;
+    row.appendChild(document.createTextNode("Replying, please wait"));
+    var dots = document.createElement("span");
+    dots.className = "support-pending-dots";
+    dots.setAttribute("aria-hidden", "true");
+    row.appendChild(dots);
+    if (supportMessages) {
+      supportMessages.appendChild(row);
+      supportMessages.scrollTop = supportMessages.scrollHeight;
+    }
+    var count = 0;
+    pendingSupportRows[requestId] = row;
+    pendingSupportTimers[requestId] = window.setInterval(function () {
+      count = (count + 1) % 4;
+      dots.textContent = ".".repeat(count);
+    }, 450);
+  }
+
+  function stopSupportPending(requestId) {
+    var key = String(requestId || "");
+    if (pendingSupportTimers[key]) window.clearInterval(pendingSupportTimers[key]);
+    var row = pendingSupportRows[key];
+    if (row && row.parentNode) row.parentNode.removeChild(row);
+    delete pendingSupportTimers[key];
+    delete pendingSupportRows[key];
+  }
+
+  function stopPendingForReply(item) {
+    var requestId = String((item && item.request_id) || "");
+    if (requestId && pendingSupportRows[requestId]) {
+      stopSupportPending(requestId);
+      return;
+    }
+    // Older gateways may omit request_id in a poll row.  Remove the oldest
+    // visible indicator rather than leaving a permanent “replying” bubble.
+    var keys = Object.keys(pendingSupportRows);
+    if (keys.length) stopSupportPending(keys[0]);
+  }
+
   function pollSupportReplies() {
     // The timer and the post-submit retry can overlap while Brain is working.
     // Without a single-flight guard, both requests use the same cursor and
@@ -185,6 +231,7 @@
         if (!id || seenSupportReplyIds[id] || id <= lastSupportReplyId) return;
         seenSupportReplyIds[id] = true;
         if (id > lastSupportReplyId) lastSupportReplyId = id;
+        stopPendingForReply(item);
         appendSupport(String(item.body || ""), "from-system");
       });
       sessionStorage.setItem("hzt_support_reply_cursor", String(lastSupportReplyId));
@@ -202,6 +249,7 @@
     var requestId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
     appendSupport(message, "from-customer");
     field.value = "";
+    startSupportPending(requestId);
     /* The Cloudflare edge signs this request server-side before forwarding.
        No gateway secret or internal token is ever present in browser code. */
     fetch("https://api.hongzhtaichina.com/api/clients/chat", {
@@ -209,10 +257,12 @@
       body: JSON.stringify({ session_id: supportSession, request_id: requestId, message: message })
     }).then(function (response) {
       if (!response || !response.ok) {
+        stopSupportPending(requestId);
         appendSupport("The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard at Beihuaipo, Diyuan Road, Shajing Subdistrict, Jiangnan District, Nanning, Guangxi, China.", "from-system");
       }
       window.setTimeout(pollSupportReplies, 400);
     }).catch(function () {
+      stopSupportPending(requestId);
       appendSupport("The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard at Beihuaipo, Diyuan Road, Shajing Subdistrict, Jiangnan District, Nanning, Guangxi, China.", "from-system");
     });
   });
