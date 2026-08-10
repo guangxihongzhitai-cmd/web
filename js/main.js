@@ -151,6 +151,44 @@
   if (tbotFab) tbotFab.addEventListener("click", function () { toggleChat(); });
   if (tbotClose) tbotClose.addEventListener("click", function () { toggleChat(false); });
 
+  var supportForm = document.getElementById("public-support-form");
+  var supportMessages = document.getElementById("tbot-chat-messages");
+  var supportSession = sessionStorage.getItem("hzt_support_session");
+  if (!supportSession) {
+    supportSession = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
+    sessionStorage.setItem("hzt_support_session", supportSession);
+  }
+  function appendSupport(text, kind) {
+    if (!supportMessages) return;
+    var row = document.createElement("p");
+    row.className = "support-message " + (kind || "");
+    row.textContent = text;
+    supportMessages.appendChild(row);
+    supportMessages.scrollTop = supportMessages.scrollHeight;
+  }
+  if (supportForm) supportForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var field = document.getElementById("public-support-message");
+    var message = field ? field.value.trim() : "";
+    if (!message) return;
+    var requestId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
+    appendSupport(message, "from-customer");
+    field.value = "";
+    appendSupport("Thanks — your message is with our support team. We’ll reply as soon as possible.", "from-system");
+    /* The Cloudflare edge signs this request server-side before forwarding.
+       No gateway secret or internal token is ever present in browser code. */
+    fetch("https://api.hongzhtaichina.com/api/clients/chat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: supportSession, request_id: requestId, message: message })
+    }).catch(function () { appendSupport("We couldn’t reach the online channel. Please WhatsApp +8613557716777 or visit our yard.", "from-system"); });
+  });
+
+  var internalTrigger = document.getElementById("internal-entry-trigger");
+  if (internalTrigger) internalTrigger.addEventListener("click", function () {
+    var entered = window.prompt("Internal access password");
+    if (entered === "168861") window.location.assign("./tbot-ui.html");
+  });
+
   var yearEl = document.getElementById("year");
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 

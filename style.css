@@ -980,6 +980,14 @@ section[id] {
   display: block;
 }
 
+.public-support-form { display:flex; gap:.55rem; padding:0 1rem 1rem; background:#f9fafb; }
+.public-support-form textarea { flex:1; resize:none; border:1px solid #dbe4ee; border-radius:6px; padding:.65rem; font:inherit; font-size:.82rem; }
+.public-support-form .btn-primary { border:0; padding:.65rem .8rem; align-self:stretch; cursor:pointer; }
+.support-message { text-align:left; margin:.45rem 0; padding:.55rem .7rem; border-radius:7px; font-size:.82rem; line-height:1.45; }
+.support-message.from-customer { background:#dcecff; margin-left:1.4rem; }
+.support-message.from-system { background:#fff; border:1px solid #e5e7eb; margin-right:1.4rem; }
+.internal-entry-trigger { width:18px; height:12px; border:0; padding:0; opacity:0; background:transparent; cursor:default; }
+
 /* Scroll reveal (JS toggles .is-visible) ---------------------------------- */
 .reveal {
   opacity: 0;

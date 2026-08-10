@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://api.hongzhtaichina.com; frame-ancestors 'none'; base-uri 'none'" />
+  <title>Tbot Operations · HZT</title><link rel="stylesheet" href="./tbot-ui.css" />
+</head>
+<body class="tbot-ui-page">
+  <script>if(sessionStorage.getItem("hzt_tbot_authenticated")!=="1")location.replace("./tbot-login.html");</script>
+  <header class="ops-header"><a href="./index.html" class="ops-brand">HZT <span>OPERATIONS</span></a><div class="ops-header-right"><span class="status-dot"></span><span>Local control surface</span><button id="logout">Sign out</button></div></header>
+  <div class="ops-layout">
+    <aside class="ops-sidebar"><div class="sidebar-label">DRIVER CONSOLE</div><a class="side-link active" href="#overview">Overview</a><a class="side-link" href="#clients">Clients</a><a class="side-link" href="#inventory">Inventory</a><a class="side-link" href="#runtime">Runtime</a><a class="side-link" href="#audit">Audit</a><div class="sidebar-footer">OpenClaw · V2<br />Tbot driver surface</div></aside>
+    <main class="ops-main"><div class="ops-kicker">Tbot / OpenClaw V2</div><h1>Operations overview</h1><p class="ops-subtitle">A focused control surface for the driver, communications module and business skills.</p>
+      <section id="overview" class="metric-grid"><article class="metric-card"><span>DRIVER</span><strong>READY</strong><small>Primary runtime</small></article><article class="metric-card"><span>COMMUNICATIONS</span><strong id="api-status">CHECKING</strong><small>Data API health</small></article><article class="metric-card"><span>POLICY</span><strong>GATED</strong><small>Human approvals remain required</small></article></section>
+      <section id="clients" class="panel"><div class="panel-heading"><div><span class="panel-eyebrow">CUSTOMER CHANNEL</span><h2>Clients</h2></div><span class="pill">Inbound only</span></div><p>Customer conversations are handled through the public support gateway. Internal roles, tools and approvals are never accepted from this surface.</p><a class="panel-action" href="./index.html#contact">Open public contact →</a></section>
+      <section class="two-col"><article id="inventory" class="panel"><span class="panel-eyebrow">SKILL</span><h2>Inventory</h2><p>Vehicle records, media evidence and controlled promotion remain behind the driver and its authorization gates.</p></article><article id="runtime" class="panel"><span class="panel-eyebrow">MACHINE</span><h2>Runtime</h2><p>OpenClaw transport and Tbot process health are monitored locally. No raw logs or secrets are rendered here.</p></article></section>
+      <section id="audit" class="panel audit-panel"><div class="panel-heading"><div><span class="panel-eyebrow">GOVERNANCE</span><h2>Audit posture</h2></div><span class="pill green">Fail closed</span></div><ul><li>Customer ingress is signed and rate-limited.</li><li>Commercial mutations require human gates.</li><li>Provider errors never become customer-facing system text.</li></ul></section>
+    </main>
+  </div><script src="./tbot-ui.js"></script>
+</body>
+</html>

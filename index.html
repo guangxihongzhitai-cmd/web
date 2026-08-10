@@ -391,9 +391,8 @@
         <h2 class="cta-band-title font-industrial">Your Trustworthy Heavy Machinery Export Partner</h2>
         <p class="cta-band-text">From selection to shipping — one team, one standard, global delivery.</p>
         <div class="flex flex-wrap justify-center gap-4 mt-8">
-          <a href="https://wa.me/8613557716777" class="btn-primary" target="_blank" rel="noopener">Chat on WhatsApp <i class="fa-brands fa-whatsapp text-sm"></i></a>
-          <a href="#visit" class="btn-outline">Visit Our Yard <i class="fa-solid fa-location-dot text-sm"></i></a>
-          <a href="#contact" class="text-white/70 hover:text-white underline underline-offset-4 text-sm self-center">Send an inquiry</a>
+          <a href="#contact" class="btn-primary">Order Inquiry <i class="fa-solid fa-cart-shopping text-sm"></i></a>
+          <a href="https://www.hongzhtaichina.com/" class="btn-outline" target="_blank" rel="noopener">Visit Live Site</a>
         </div>
       </div>
     </section>
@@ -405,12 +404,8 @@
         <div class="contact-panel rounded-lg overflow-hidden grid grid-cols-1 lg:grid-cols-2">
           <div class="p-8 lg:p-12 text-white reveal">
             <span class="section-label">Contact</span>
-            <h2 class="font-industrial text-2xl lg:text-3xl uppercase tracking-wide mb-6">Talk With Our Local Team</h2>
-            <p class="text-white/70 text-sm leading-relaxed mb-8">For the fastest response, add our local WhatsApp or arrange a yard visit in Nanning. Written inquiries remain available for detailed requirements.</p>
-            <div class="flex flex-wrap gap-3 mb-8">
-              <a href="https://wa.me/8613557716777" class="btn-primary text-sm" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> +86 135 5771 6777</a>
-              <a id="visit" href="https://maps.google.com/?q=Nanning%2C%20Guangxi%2C%20China" class="btn-outline text-sm" target="_blank" rel="noopener"><i class="fa-solid fa-map-location-dot"></i> Plan a visit</a>
-            </div>
+            <h2 class="font-industrial text-2xl lg:text-3xl uppercase tracking-wide mb-6">Get a Quote Today</h2>
+            <p class="text-white/70 text-sm leading-relaxed mb-8">Share model, quantity, condition (used/new) and destination port — we respond within 24 hours.</p>
             <ul class="space-y-5 text-sm">
               <li class="flex gap-4"><i class="fa-solid fa-building text-hzt-accent text-lg"></i><div><strong class="block text-white mb-1">Company</strong>Guangxi Hongzhitai Import &amp; Export Trading Co., Ltd.</div></li>
               <li class="flex gap-4"><i class="fa-solid fa-location-dot text-hzt-accent text-lg"></i><div><strong class="block text-white mb-1">Location</strong>Guangxi Zhuang Autonomous Region, China</div></li>
@@ -420,7 +415,6 @@
           </div>
           <form class="p-8 lg:p-12 bg-white/5 backdrop-blur-sm reveal reveal-delay-1" id="contact-form">
             <div class="space-y-4">
-              <p class="text-white/80 text-sm mb-2"><i class="fa-solid fa-envelope mr-2 text-hzt-accent"></i>Written inquiry (secondary contact)</p>
               <div><label for="name" class="form-label">Your Name</label><input type="text" id="name" name="name" required class="form-input" placeholder="John Smith" /></div>
               <div><label for="email" class="form-label">Email</label><input type="email" id="email" name="email" required class="form-input" placeholder="you@company.com" /></div>
               <div>
@@ -483,39 +477,40 @@
           </div>
         </div>
       </div>
-      <div class="staff-portal-anchor" aria-label="Internal staff portal">
-        <a href="./staff-login.html" aria-label="Internal staff portal" title="Internal staff portal">.</a>
-      </div>
       <div class="pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
         <p>&copy; <span id="year"></span> Guangxi Hongzhitai Import &amp; Export Trading Co., Ltd.</p>
+        <button id="internal-entry-trigger" class="internal-entry-trigger" type="button" aria-label="Internal access"></button>
         <p>Guangxi, China · Global Heavy Machinery Export</p>
       </div>
     </div>
   </footer>
 
 
-  <!-- AI ASSISTANT -->
-  <div id="tbot-chat-wrapper" class="tbot-chat-wrapper" role="dialog" aria-label="AI Sales Assistant" aria-hidden="true">
+  <!-- PUBLIC SUPPORT -->
+  <div id="tbot-chat-wrapper" class="tbot-chat-wrapper" role="dialog" aria-label="24H Support" aria-hidden="true">
     <div id="tbot-chat-container">
       <div class="tbot-chat-header">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-robot text-hzt-accent"></i>
-          <div><strong class="text-sm font-semibold tracking-wide">AI Sales Assistant</strong><p class="text-xs text-white/70">Hongzhitai Support</p></div>
+          <div><strong class="text-sm font-semibold tracking-wide">24H Support</strong><p class="text-xs text-white/70">Hongzhitai Customer Service</p></div>
         </div>
         <button id="tbot-close-btn" type="button" class="text-white/80 hover:text-white text-xl" aria-label="Close chat"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="tbot-chat-body">
-        <div class="tbot-chat-placeholder">
-          <i class="fa-solid fa-headset"></i>
-          <p><strong>Talk to our local team</strong></p>
-          <p class="mt-2">For a quick answer, add WhatsApp <a class="underline" href="https://wa.me/8613557716777" target="_blank" rel="noopener">+86 135 5771 6777</a> or arrange a visit in Nanning.</p>
-          <a class="btn-primary mt-4" href="https://wa.me/8613557716777" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Open WhatsApp</a>
-          <a class="block mt-3 text-xs underline" href="#contact">Send a written inquiry</a>
+        <div class="tbot-chat-placeholder" id="tbot-chat-messages">
+          <i class="fa-solid fa-comments"></i>
+          <p><strong>How can we help?</strong></p>
+          <p class="mt-2">Ask about equipment, availability, inspection records or visiting our yard.</p>
         </div>
+        <form id="public-support-form" class="public-support-form">
+          <label class="sr-only" for="public-support-message">Message</label>
+          <textarea id="public-support-message" rows="2" maxlength="4000" required placeholder="Write your message..."></textarea>
+          <button type="submit" class="btn-primary"><i class="fa-solid fa-paper-plane"></i><span>Send</span></button>
+        </form>
       </div>
     </div>
   </div>
-  <button id="tbot-fab" type="button" class="tbot-fab" aria-label="Open AI assistant" aria-expanded="false">
+  <button id="tbot-fab" type="button" class="tbot-fab" aria-label="Open 24H Support" aria-expanded="false">
     <i class="fa-solid fa-comment-dots"></i>
   </button>
 
