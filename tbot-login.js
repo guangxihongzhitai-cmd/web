@@ -6,17 +6,19 @@
   if (!form) return;
   form.addEventListener("submit", function (event) {
     event.preventDefault();
-    /* Temporary bootstrap password requested by the owner. Replace this
-       client gate with the Cloudflare Access/Worker session gate before
-       exposing operational data publicly. */
-    var ok = password && password.value === "168861";
-    if (!ok) {
-      error.hidden = false;
-      password.value = "";
-      password.focus();
-      return;
-    }
-    sessionStorage.setItem("hzt_tbot_authenticated", "1");
-    window.location.assign("./tbot-ui.html");
+    if (!password || !password.value) return;
+    error.hidden = true;
+    fetch("https://api.hongzhtaichina.com/api/ui/login", {
+      method: "POST", credentials: "include",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({password: password.value})
+    }).then(function (response) {
+      return response.json().catch(function () { return null; }).then(function (data) {
+        if (!response.ok || !data || !data.ok) throw new Error("unauthorized");
+        window.location.assign("./tbot-ui.html");
+      });
+    }).catch(function () {
+      error.hidden = false; password.value = ""; password.focus();
+    });
   });
 })();
