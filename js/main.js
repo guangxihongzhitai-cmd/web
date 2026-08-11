@@ -151,6 +151,162 @@
   if (tbotFab) tbotFab.addEventListener("click", function () { toggleChat(); });
   if (tbotClose) tbotClose.addEventListener("click", function () { toggleChat(false); });
 
+  var supportForm = document.getElementById("public-support-form");
+  var supportMessages = document.getElementById("tbot-chat-messages");
+  // Anonymous identity is long-lived but random. It is deliberately
+  // separate from the short-lived chat session and never derived from IP.
+  // Safari/iPad privacy mode and blocked storage can throw synchronously from
+  // both getItem and setItem. Storage failure must not abort the rest of the
+  // customer-chat bootstrap; the in-memory fallback keeps this page usable.
+  function safeStorage(name) {
+    try {
+      var store = window[name];
+      if (!store) return null;
+      var probe = "__hzt_probe__";
+      store.setItem(probe, "1");
+      store.removeItem(probe);
+      return store;
+    } catch (e) {
+      return null;
+    }
+  }
+  function safeGet(store, key, fallback) {
+    try {
+      var value = store && store.getItem(key);
+      return value || fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+  function safeSet(store, key, value) {
+    try {
+      if (store) store.setItem(key, String(value));
+    } catch (e) {
+      // The browser may reject storage after the initial probe; keep the
+      // in-memory value and continue using the public chat for this page.
+    }
+  }
+  var hztLocalStorage = safeStorage("localStorage");
+  var hztSessionStorage = safeStorage("sessionStorage");
+  var publicVisitorId = safeGet(hztLocalStorage, "hzt_public_visitor_id", "");
+  if (!publicVisitorId) {
+    publicVisitorId = "v_" + ((window.crypto && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g, "") : String(Date.now()) + Math.random().toString(16).slice(2));
+    safeSet(hztLocalStorage, "hzt_public_visitor_id", publicVisitorId);
+  }
+  var supportSession = safeGet(hztSessionStorage, "hzt_support_session", "");
+  if (!supportSession) {
+    supportSession = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
+    safeSet(hztSessionStorage, "hzt_support_session", supportSession);
+  }
+  function appendSupport(text, kind) {
+    if (!supportMessages) return null;
+    var row = document.createElement("p");
+    row.className = "support-message " + (kind || "");
+    row.textContent = text;
+    supportMessages.appendChild(row);
+    supportMessages.scrollTop = supportMessages.scrollHeight;
+    return row;
+  }
+  var lastSupportReplyId = Number(safeGet(hztSessionStorage, "hzt_support_reply_cursor", "0") || 0);
+  var supportPollInFlight = false;
+  var seenSupportReplyIds = Object.create(null);
+  var pendingSupportRows = Object.create(null);
+  var pendingSupportTimers = Object.create(null);
+
+  function startSupportPending(requestId) {
+    var row = document.createElement("p");
+    row.className = "support-message from-system support-pending";
+    row.dataset.requestId = requestId;
+    row.appendChild(document.createTextNode("Replying, please wait"));
+    var dots = document.createElement("span");
+    dots.className = "support-pending-dots";
+    dots.setAttribute("aria-hidden", "true");
+    row.appendChild(dots);
+    if (supportMessages) {
+      supportMessages.appendChild(row);
+      supportMessages.scrollTop = supportMessages.scrollHeight;
+    }
+    var count = 0;
+    pendingSupportRows[requestId] = row;
+    pendingSupportTimers[requestId] = window.setInterval(function () {
+      count = (count + 1) % 4;
+      dots.textContent = ".".repeat(count);
+    }, 450);
+  }
+
+  function stopSupportPending(requestId) {
+    var key = String(requestId || "");
+    if (pendingSupportTimers[key]) window.clearInterval(pendingSupportTimers[key]);
+    var row = pendingSupportRows[key];
+    if (row && row.parentNode) row.parentNode.removeChild(row);
+    delete pendingSupportTimers[key];
+    delete pendingSupportRows[key];
+  }
+
+  function stopPendingForReply(item) {
+    var requestId = String((item && item.request_id) || "");
+    if (requestId && pendingSupportRows[requestId]) {
+      stopSupportPending(requestId);
+      return;
+    }
+    // Older gateways may omit request_id in a poll row.  Remove the oldest
+    // visible indicator rather than leaving a permanent 鈥渞eplying鈥?bubble.
+    var keys = Object.keys(pendingSupportRows);
+    if (keys.length) stopSupportPending(keys[0]);
+  }
+
+  function pollSupportReplies() {
+    // The timer and the post-submit retry can overlap while Brain is working.
+    // Without a single-flight guard, both requests use the same cursor and
+    // append the same outbound row twice when they return together.
+    if (supportPollInFlight) return;
+    supportPollInFlight = true;
+    fetch("https://api.hongzhtaichina.com/api/clients/chat/poll", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: supportSession, visitor_id: publicVisitorId, after_id: lastSupportReplyId })
+    }).then(function (response) { return response.ok ? response.json() : null; }).then(function (data) {
+      if (!data || !Array.isArray(data.messages)) return;
+      data.messages.forEach(function (item) {
+        var id = Number(item.id || 0);
+        if (!id || seenSupportReplyIds[id] || id <= lastSupportReplyId) return;
+        seenSupportReplyIds[id] = true;
+        if (id > lastSupportReplyId) lastSupportReplyId = id;
+        stopPendingForReply(item);
+        appendSupport(String(item.body || ""), "from-system");
+      });
+      safeSet(hztSessionStorage, "hzt_support_reply_cursor", String(lastSupportReplyId));
+    }).catch(function () {}).then(function () {
+      supportPollInFlight = false;
+    });
+  }
+  window.setInterval(pollSupportReplies, 2500);
+  pollSupportReplies();
+  if (supportForm) supportForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var field = document.getElementById("public-support-message");
+    var message = field ? field.value.trim() : "";
+    if (!message) return;
+    var requestId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
+    appendSupport(message, "from-customer");
+    field.value = "";
+    startSupportPending(requestId);
+    /* The Cloudflare edge signs this request server-side before forwarding.
+       No gateway secret or internal token is ever present in browser code. */
+    fetch("https://api.hongzhtaichina.com/api/clients/chat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: supportSession, visitor_id: publicVisitorId, request_id: requestId, message: message })
+    }).then(function (response) {
+      if (!response || !response.ok) {
+        stopSupportPending(requestId);
+        appendSupport("The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard at Beihuaipo, Diyuan Road, Shajing Subdistrict, Jiangnan District, Nanning, Guangxi, China.", "from-system");
+      }
+      window.setTimeout(pollSupportReplies, 400);
+    }).catch(function () {
+      stopSupportPending(requestId);
+      appendSupport("The online channel is temporarily unavailable. Please WhatsApp +8613557716777 or visit our yard at Beihuaipo, Diyuan Road, Shajing Subdistrict, Jiangnan District, Nanning, Guangxi, China.", "from-system");
+    });
+  });
+
   var yearEl = document.getElementById("year");
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
@@ -183,3 +339,4 @@
     galObs.observe(galleryEl);
   }
 })();
+

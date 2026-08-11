@@ -1,0 +1,48 @@
+/* Mobile layout for the internal Tbot control surface. */
+html,body{max-width:100%;overflow-x:hidden}
+.ops-header,.ops-layout,.ops-main,.module-panel,.panel,.metric-card,.clients-projection,.client-list-wrap,.client-detail{min-width:0}
+.ops-main{overflow-x:hidden}
+.ops-main h1,.ops-subtitle,.panel h2,.panel p,.panel li,.module-panel h2,.module-panel p,.data-placeholder,.mini-card,.log-lines,.client-detail-toolbar>strong{overflow-wrap:anywhere}
+.ops-sidebar{scrollbar-width:thin}
+@media(max-width:760px){
+  .ops-header{height:64px;padding:0 12px}
+  .ops-header-right{gap:6px}
+  .ops-header-right span:not(.status-dot){display:none}
+  .ops-header button{padding:6px 8px;font-size:11px}
+  .ops-layout{flex-direction:column}
+  .ops-sidebar{display:flex;width:100%;height:auto;flex:0 0 auto;flex-direction:row;align-items:center;overflow-x:auto;padding:8px 10px;gap:6px}
+  .sidebar-label,.sidebar-footer{display:none}
+  .side-link{flex:0 0 auto;padding:8px 10px;font-size:12px;white-space:nowrap}
+  .ops-main{padding:22px 12px}
+  .ops-main h1{font-size:30px;line-height:1.15}
+  .ops-subtitle{font-size:13px;margin-bottom:20px}
+  .metric-grid,.two-col{grid-template-columns:1fr}
+  .metric-card,.panel,.module-panel{padding:16px}
+  .panel-heading{flex-wrap:wrap}
+  .module-panel{margin-top:14px}
+  .module-panel p{font-size:13px}
+  .control-strip,.client-toolbar{gap:6px}
+  .control-strip button,.client-toolbar button{padding:8px 10px}
+  .client-toolbar input{min-width:0;flex:1 1 100%}
+  .client-toolbar select{min-width:0;max-width:100%}
+  .clients-list-toolbar select{flex:1 1 calc(100% - 90px)}
+  .client-detail-toolbar{align-items:flex-start;flex-direction:column;overflow-wrap:anywhere}
+  .client-detail-actions{width:100%;min-width:0;justify-content:flex-start}
+  .client-filters{gap:6px}
+  .client-filters label{min-width:0;width:100%;justify-content:space-between}
+  .client-filters input,.client-filters select{min-width:0;max-width:100%;flex:1}
+  .client-chat-scroll{height:calc(100vh - 390px);min-height:300px;max-height:520px}
+}
+@media(max-width:420px){
+  .ops-header{height:60px}
+  .ops-brand{font-size:13px}
+  .ops-brand span{display:none}
+  .ops-main{padding:18px 10px}
+  .ops-main h1{font-size:26px}
+  .metric-card strong{font-size:22px}
+  .clients-projection{padding:8px}
+  .client-list-heading,.client-detail-toolbar{padding:10px}
+  .client-detail-actions button{font-size:10px;padding:6px;white-space:nowrap}
+  .client-chat-scroll{height:360px}
+}
+

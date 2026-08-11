@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Guangxi Hongzhitai — Industrial Theme (XCMG-inspired)
+   Guangxi Hongzhitai 鈥?Industrial Theme (XCMG-inspired)
    Modular custom styles; Tailwind handles layout utilities.
    ========================================================================== */
 
@@ -95,7 +95,7 @@ body {
   margin-top: 2px;
 }
 
-/* On dark scrolled header — keep legibility */
+/* On dark scrolled header 鈥?keep legibility */
 .site-header.is-scrolled .brand-name {
   color: #c4b5fd;
 }
@@ -925,6 +925,7 @@ section[id] {
   z-index: 9989;
   width: min(380px, calc(100vw - 48px));
   max-height: min(520px, calc(100vh - 120px));
+  height: min(520px, calc(100vh - 120px));
   opacity: 0;
   visibility: hidden;
   transform: translateY(16px) scale(0.96);
@@ -959,11 +960,28 @@ section[id] {
 }
 
 .tbot-chat-body {
-  flex: 1;
-  padding: 1.25rem;
-  overflow-y: auto;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
   background: #f9fafb;
 }
+
+.tbot-chat-messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 1.25rem;
+  overflow-y: scroll;
+  background: #f9fafb;
+  scrollbar-width: auto;
+  scrollbar-color: var(--hzt-primary) #e5e7eb;
+}
+
+.tbot-chat-messages::-webkit-scrollbar { width: 12px; }
+.tbot-chat-messages::-webkit-scrollbar-track { background: #e5e7eb; }
+.tbot-chat-messages::-webkit-scrollbar-thumb { background: var(--hzt-primary); border-radius: 8px; border: 2px solid #e5e7eb; }
 
 .tbot-chat-placeholder {
   text-align: center;
@@ -979,6 +997,18 @@ section[id] {
   margin-bottom: 1rem;
   display: block;
 }
+
+.public-support-form { display:flex; gap:.55rem; padding:0 1rem 1rem; background:#f9fafb; }
+.public-support-form textarea { flex:1; resize:none; border:1px solid #dbe4ee; border-radius:6px; padding:.65rem; font:inherit; font-size:.82rem; }
+.public-support-form .btn-primary { border:0; padding:.65rem .8rem; align-self:stretch; cursor:pointer; }
+.support-message { text-align:left; margin:.45rem 0; padding:.55rem .7rem; border-radius:7px; font-size:.82rem; line-height:1.45; }
+.support-message.from-customer { background:#dcecff; margin-left:1.4rem; }
+.support-message.from-system { background:#fff; border:1px solid #e5e7eb; margin-right:1.4rem; }
+.support-message.support-pending { color:#64748b; font-style:italic; }
+.support-pending-dots { display:inline-block; min-width:1.5em; letter-spacing:.12em; }
+.staff-portal-anchor { height: 10px; text-align: center; overflow: hidden; }
+.staff-portal-anchor a { display: inline-block; width: 12px; height: 10px; color: transparent; text-decoration: none; opacity: 0.02; }
+.staff-portal-anchor a:focus { opacity: 0.8; color: var(--hzt-accent); outline: 1px dotted var(--hzt-accent); }
 
 /* Scroll reveal (JS toggles .is-visible) ---------------------------------- */
 .reveal {
@@ -1026,3 +1056,4 @@ section[id] {
   color: #f5a623;
   outline: 2px solid #f5a623;
 }
+

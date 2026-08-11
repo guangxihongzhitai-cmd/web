@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://api.hongzhtaichina.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" />
+  <title>Internal access 路 HZT</title>
+  <link rel="stylesheet" href="./tbot-ui.css" />
+</head>
+<body class="tbot-login-page">
+  <main class="login-card" aria-labelledby="login-title">
+    <div class="eyebrow">HZT 路 INTERNAL OPERATIONS</div>
+    <h1 id="login-title">Tbot Operations</h1>
+    <p>Authorized operators only. This access point is not customer-facing.</p>
+    <form id="tbot-login-form" autocomplete="off">
+      <label for="tbot-password">Access password</label>
+      <input id="tbot-password" type="password" inputmode="numeric" minlength="6" maxlength="64" required />
+      <button type="submit">Enter Operations UI</button>
+      <div id="tbot-login-error" class="login-error" role="alert" hidden>Access denied.</div>
+    </form>
+    <a href="./index.html" class="back-link">Return to public site</a>
+  </main>
+  <script src="./tbot-login.js?v=20260810-sessionlogin3"></script>
+</body>
+</html>
+
