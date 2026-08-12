@@ -62,7 +62,9 @@
   }
   function selectRow(ref) {
     state.selected = ref; renderRows(); setMessage("Loading upstream conversation…");
-    api("/api/ui/upstream?" + new URLSearchParams({ supplier_ref: ref, max_messages: "400" }).toString()).then(renderDetail).then(function () { setMessage(""); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Upstream history is unavailable.", true); });
+    var params = new URLSearchParams({ supplier_ref: ref, max_messages: "400" });
+    ["upstream-filter-country", "upstream-filter-name", "upstream-filter-from", "upstream-filter-to", "upstream-filter-keyword"].forEach(function (id) { var key = id.replace("upstream-filter-", ""); var current = value(id); if (current) params.set(key === "name" ? "name_query" : key === "from" ? "date_from" : key === "to" ? "date_to" : key === "keyword" ? "keyword" : "country", current); });
+    api("/api/ui/upstream?" + params.toString()).then(renderDetail).then(function () { setMessage(""); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Upstream history is unavailable.", true); });
   }
   function loadUpstream() {
     setMessage("Loading upstream suppliers…");
@@ -84,6 +86,7 @@
     if (event.target.closest && event.target.closest('[data-action="upstream-open"]')) { var box = el("tbot-ui-live-upstream-chat"); if (box) box.focus(); }
     if (event.target.id === "upstream-copy-phone") { var row = selectedRow(); if (row) copy(row.phone_display || row.phone); }
     if (event.target.id === "upstream-copy-wa") { var row2 = selectedRow(); if (row2) copy(row2.whatsapp_url || ("https://wa.me/" + String(row2.phone || "").replace(/\D/g, ""))); }
+    if (event.target.id === "upstream-filter-apply" && state.selected) selectRow(state.selected);
   });
   var search = el("upstream-search"); if (search) search.addEventListener("keydown", function (event) { if (event.key === "Enter") loadUpstream(); });
   var country = el("upstream-country"); if (country) country.addEventListener("change", loadUpstream);
