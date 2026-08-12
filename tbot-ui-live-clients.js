@@ -41,9 +41,12 @@
       var row = document.createElement("button");
       row.type = "button"; row.className = "client-row" + (state.selected === client.phone ? " active" : "");
       row.setAttribute("role", "option"); row.setAttribute("aria-selected", state.selected === client.phone ? "true" : "false");
+      var head = document.createElement("div"); head.className = "client-row-head";
       var name = document.createElement("strong"); name.textContent = client.name || client.phone_display || client.phone;
-      var meta = document.createElement("span"); meta.textContent = [client.phone_display || client.phone, client.country].filter(Boolean).join(" · ");
-      row.appendChild(name); row.appendChild(meta);
+      var stamp = document.createElement("time"); stamp.className = "client-row-time"; stamp.textContent = client.last_activity_display || "—";
+      head.appendChild(name); head.appendChild(stamp);
+      var meta = document.createElement("span"); meta.className = "client-row-meta"; meta.textContent = [client.phone_display || client.phone, client.country].filter(Boolean).join(" · ");
+      row.appendChild(head); row.appendChild(meta);
       row.addEventListener("click", function () { selectClient(client.phone); });
       list.appendChild(row);
     });
