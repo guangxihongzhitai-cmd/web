@@ -19,10 +19,11 @@
     });
   }
   function value(id) { var node = el(id); return node ? String(node.value || "").trim() : ""; }
-  function setOptions(id, values) {
+  function setOptions(id, values, firstLabel) {
     var node = el(id); if (!node) return;
     var current = node.value;
-    node.innerHTML = "<option value=\"\">All countries</option>";
+    node.innerHTML = "";
+    var first = document.createElement("option"); first.value = ""; first.textContent = firstLabel || "All countries"; node.appendChild(first);
     (values || []).forEach(function (item) { var option = document.createElement("option"); option.value = item; option.textContent = item; node.appendChild(option); });
     if ([].some.call(node.options, function (option) { return option.value === current; })) node.value = current;
   }
@@ -63,7 +64,14 @@
   function selectRow(ref) {
     state.selected = ref; renderRows(); setMessage("Loading upstream conversation…");
     var params = new URLSearchParams({ supplier_ref: ref, max_messages: "400" });
-    ["upstream-filter-country", "upstream-filter-name", "upstream-filter-from", "upstream-filter-to", "upstream-filter-keyword"].forEach(function (id) { var key = id.replace("upstream-filter-", ""); var current = value(id); if (current) params.set(key === "name" ? "name_query" : key === "from" ? "date_from" : key === "to" ? "date_to" : key === "keyword" ? "keyword" : "country", current); });
+    var filters = {
+      country: value("upstream-filter-country"),
+      name_query: value("upstream-filter-name"),
+      date_from: value("upstream-filter-from"),
+      date_to: value("upstream-filter-to"),
+      keyword: value("upstream-filter-keyword")
+    };
+    Object.keys(filters).forEach(function (key) { if (filters[key]) params.set(key, filters[key]); });
     api("/api/ui/upstream?" + params.toString()).then(renderDetail).then(function () { setMessage(""); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Upstream history is unavailable.", true); });
   }
   function loadUpstream() {
@@ -72,7 +80,7 @@
     if (search) params.set("search", search); if (country) params.set("country", country); params.set("refresh", String(Date.now()));
     api("/api/ui/upstream?" + params.toString()).then(function (data) {
       state.rows = Array.isArray(data.upstream) ? data.upstream : [];
-      setOptions("upstream-country", data.countries || []); renderRows();
+      setOptions("upstream-country", data.countries || [], "All countries"); renderRows();
       if (state.selected && state.rows.some(function (row) { return row.supplier_ref === state.selected; })) selectRow(state.selected);
       else { state.selected = null; renderDetail({ messages: [] }); setMessage(""); }
     }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Upstream list is unavailable.", true); });
@@ -89,6 +97,7 @@
     if (event.target.id === "upstream-filter-apply" && state.selected) selectRow(state.selected);
   });
   var search = el("upstream-search"); if (search) search.addEventListener("keydown", function (event) { if (event.key === "Enter") loadUpstream(); });
+  if (search) search.placeholder = "Search phone, name or country";
   var country = el("upstream-country"); if (country) country.addEventListener("change", loadUpstream);
   window.addEventListener("hashchange", function () { if (location.hash === "#upstream") loadUpstream(); });
   if (location.hash === "#upstream") loadUpstream();
