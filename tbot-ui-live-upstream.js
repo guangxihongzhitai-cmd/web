@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   var API = "https://api.hongzhtaichina.com";
-  var state = { rows: [], selected: null, detail: null };
+  var state = { rows: [], selected: null, detail: null, recoveryTimer: null, recoveryAttempts: 0 };
   function el(id) { return document.getElementById(id); }
   function setMessage(message, error) {
     var feedback = el("module-feedback");
@@ -85,16 +85,18 @@
     Object.keys(filters).forEach(function (key) { if (filters[key]) params.set(key, filters[key]); });
     api("/api/ui/upstream?" + params.toString()).then(renderDetail).then(function () { setMessage(""); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Upstream history is unavailable.", true); });
   }
+  function scheduleRecovery(load) { if (state.recoveryTimer || state.recoveryAttempts >= 2) return; state.recoveryAttempts += 1; state.recoveryTimer = window.setTimeout(function () { state.recoveryTimer = null; load(); }, 2500); }
   function loadUpstream() {
     setMessage("Loading upstream suppliers…");
     var params = new URLSearchParams(); var search = value("upstream-search"); var country = value("upstream-country");
     if (search) params.set("search", search); if (country) params.set("country", country); params.set("refresh", String(Date.now()));
     api("/api/ui/upstream?" + params.toString()).then(function (data) {
+      state.recoveryAttempts = 0;
       state.rows = Array.isArray(data.upstream) ? data.upstream : [];
       setOptions("upstream-country", data.countries || [], "All countries"); renderRows();
       if (state.selected && state.rows.some(function (row) { return row.supplier_ref === state.selected; })) selectRow(state.selected);
       else { state.selected = null; renderDetail({ messages: [] }); setMessage(""); }
-    }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Upstream list is unavailable.", true); });
+    }).catch(function (error) { if (error.message !== "unauthorized") { setMessage("Upstream list is unavailable; retrying…", true); scheduleRecovery(loadUpstream); } });
   }
   function selectedRow() { return state.rows.filter(function (row) { return row.supplier_ref === state.selected; })[0] || (state.detail && state.detail.selected); }
   function copy(text) { if (text && navigator.clipboard) navigator.clipboard.writeText(text).then(function () { setMessage("Copied."); }); }
