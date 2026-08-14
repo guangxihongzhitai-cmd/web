@@ -15,7 +15,7 @@
       return fetch(API + path, request).then(function (response) { return response.json().catch(function () { return null; }).then(function (data) {
         if (response.status === 401) { location.replace("./tbot-login.html"); throw new Error("unauthorized"); }
         if (!response.ok || !data || data.ok === false) {
-          var transient = response.status === 502 || response.status === 503 || response.status === 504 || (data && data.error === "ui_upstream_unavailable");
+          var transient = response.status === 404 || response.status === 502 || response.status === 503 || response.status === 504 || (data && data.error === "ui_upstream_unavailable");
           if (retryable && transient && number < 3) return new Promise(function (resolve) { window.setTimeout(resolve, 350 * number); }).then(function () { return attempt(number + 1); });
           throw new Error((data && data.error) || "request_failed");
         }
