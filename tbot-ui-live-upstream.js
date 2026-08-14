@@ -9,30 +9,21 @@
     feedback.textContent = message || "";
     feedback.classList.toggle("is-error", Boolean(error));
   }
-  function discoveryLabel(row) {
-    var state = row && row.discovery_state;
-    if (state === "available_after_supplier_reply") return "已由供应商回复确认";
-    if (state === "historical_only") return "历史档案（非现货）";
-    if (state === "no_match_after_supplier_reply") return "已询问：无匹配现货";
-    return "尚未询问供应商";
-  }
   function api(path) {
     function attempt(number) {
       var controller = window.AbortController ? new AbortController() : null;
-      var request = { credentials: "include", cache: "no-store", headers: { "Accept": "application/json" } };
-      if (controller) { request.signal = controller.signal; window.setTimeout(function () { controller.abort(); }, 12000); }
-      return fetch(API + path, request).then(function (response) {
-        return response.json().catch(function () { return null; }).then(function (data) {
-          if (response.status === 401) { location.replace("./tbot-login.html"); throw new Error("unauthorized"); }
-          if (!response.ok || !data || data.ok === false) {
-            var transient = response.status === 502 || response.status === 503 || response.status === 504 || (data && data.error === "ui_upstream_unavailable");
-            if (transient && number < 2) return new Promise(function (resolve) { window.setTimeout(resolve, 350 * number); }).then(function () { return attempt(number + 1); });
-            throw new Error((data && data.error) || "request_failed");
-          }
-          return data;
-        });
-      }).catch(function (error) {
-        if (number < 2 && error && (error.name === "AbortError" || error.name === "TypeError")) return new Promise(function (resolve) { window.setTimeout(resolve, 350 * number); }).then(function () { return attempt(number + 1); });
+      var request = {credentials: "include", cache: "no-store", headers: {"Accept": "application/json"}};
+      if (controller) { request.signal = controller.signal; window.setTimeout(function () { controller.abort(); }, 15000); }
+      return fetch(API + path, request).then(function (response) { return response.json().catch(function () { return null; }).then(function (data) {
+        if (response.status === 401) { location.replace("./tbot-login.html"); throw new Error("unauthorized"); }
+        if (!response.ok || !data || data.ok === false) {
+          var transient = response.status === 502 || response.status === 503 || response.status === 504 || (data && data.error === "ui_upstream_unavailable");
+          if (transient && number < 3) return new Promise(function (resolve) { window.setTimeout(resolve, 350 * number); }).then(function () { return attempt(number + 1); });
+          throw new Error((data && data.error) || "request_failed");
+        }
+        return data;
+      }); }).catch(function (error) {
+        if (number < 3 && error && (error.name === "AbortError" || error.name === "TypeError")) return new Promise(function (resolve) { window.setTimeout(resolve, 350 * number); }).then(function () { return attempt(number + 1); });
         throw error;
       });
     }
@@ -59,7 +50,7 @@
       var name = document.createElement("strong"); name.textContent = row.name || row.supplier_ref;
       var stamp = document.createElement("time"); stamp.className = "client-row-time"; stamp.textContent = row.last_activity_display || "--";
       head.appendChild(name); head.appendChild(stamp);
-      var meta = document.createElement("span"); meta.className = "client-row-meta"; meta.textContent = [row.phone_display || row.phone || row.supplier_ref, row.country, "供应商·卖方", "Tbot·采购方", row.status, discoveryLabel(row), row.vehicle_summary, row.linked_customer_name ? ("客户: " + row.linked_customer_name) : ""].filter(Boolean).join(" · ");
+      var meta = document.createElement("span"); meta.className = "client-row-meta"; meta.textContent = [row.phone_display || row.phone || row.supplier_ref, row.country, "供应商·卖方", "Tbot·采购方", row.status, row.vehicle_summary, row.linked_customer_name ? ("客户: " + row.linked_customer_name) : ""].filter(Boolean).join(" · ");
       item.appendChild(head); item.appendChild(meta); item.addEventListener("click", function () { selectRow(row.supplier_ref); }); list.appendChild(item);
     });
   }
@@ -67,7 +58,7 @@
     state.detail = data;
     var row = data.selected || state.rows.filter(function (item) { return item.supplier_ref === state.selected; })[0];
     var title = el("selected-upstream-title");
-    if (title) title.textContent = row ? ((row.name || row.supplier_ref) + " · 供应商卖方 / Tbot采购方 · " + (row.phone_display || row.phone || row.supplier_ref) + " · " + discoveryLabel(row) + (row.linked_customer_name ? (" · 客户: " + row.linked_customer_name) : "")) : "Select a supplier";
+    if (title) title.textContent = row ? ((row.name || row.supplier_ref) + " · 供应商卖方 / Tbot采购方 · " + (row.phone_display || row.phone || row.supplier_ref) + (row.linked_customer_name ? (" · 客户: " + row.linked_customer_name) : "")) : "Select a supplier";
     ["upstream-copy-phone", "upstream-copy-wa"].forEach(function (id) { if (el(id)) el(id).disabled = !row; });
     var box = el("tbot-ui-live-upstream-chat"); if (!box) return;
     box.innerHTML = "";
