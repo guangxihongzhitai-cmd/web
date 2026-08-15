@@ -17,7 +17,7 @@
       return fetch(API + path, request).then(function (response) { return response.json().catch(function () { return null; }).then(function (data) {
         if (response.status === 401) { location.replace("./tbot-login.html"); throw new Error("unauthorized"); }
         if (!response.ok || !data || data.ok === false) {
-          var transient = response.status === 404 || response.status === 502 || response.status === 503 || response.status === 504 || (data && data.error === "ui_upstream_unavailable");
+          var transient = response.status === 404 || response.status === 429 || response.status === 500 || response.status === 502 || response.status === 503 || response.status === 504 || (data && data.error === "ui_upstream_unavailable");
           if (transient && number < 3) return new Promise(function (resolve) { window.setTimeout(resolve, 350 * number); }).then(function () { return attempt(number + 1); });
           throw new Error((data && data.error) || "request_failed");
         }
@@ -85,7 +85,7 @@
     Object.keys(filters).forEach(function (key) { if (filters[key]) params.set(key, filters[key]); });
     api("/api/ui/upstream?" + params.toString()).then(renderDetail).then(function () { setMessage(""); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Upstream history is unavailable.", true); });
   }
-  function scheduleRecovery(load) { if (state.recoveryTimer || state.recoveryAttempts >= 2) return; state.recoveryAttempts += 1; state.recoveryTimer = window.setTimeout(function () { state.recoveryTimer = null; load(); }, 2500); }
+  function scheduleRecovery(load) { if (state.recoveryTimer || state.recoveryAttempts >= 4) return; state.recoveryAttempts += 1; state.recoveryTimer = window.setTimeout(function () { state.recoveryTimer = null; load(); }, 2500); }
   function loadUpstream() {
     setMessage("Loading upstream suppliers…");
     var params = new URLSearchParams(); var search = value("upstream-search"); var country = value("upstream-country");
