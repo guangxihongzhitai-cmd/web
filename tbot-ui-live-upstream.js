@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   var API = "https://api.hongzhtaichina.com";
-  var state = { rows: [], selected: null, detail: null, recoveryTimer: null, recoveryAttempts: 0 };
+  var state = { rows: [], selected: null, detail: null, messages: [], messageBefore: 0, messageHasMore: false, messageLoading: false, recoveryTimer: null, recoveryAttempts: 0 };
   function el(id) { return document.getElementById(id); }
   function setMessage(message, error) {
     var feedback = el("module-feedback");
@@ -54,27 +54,29 @@
       item.appendChild(head); item.appendChild(meta); item.addEventListener("click", function () { selectRow(row.supplier_ref); }); list.appendChild(item);
     });
   }
-  function renderDetail(data) {
+  function renderDetail(data, appendOlder) {
     state.detail = data;
+    if (!appendOlder) state.messages = Array.isArray(data.messages) ? data.messages : [];
+    var page = data.messages_page || {};
+    if (!appendOlder) { state.messageBefore = Number(page.next_before || state.messages.length || 0); state.messageHasMore = Boolean(page.has_more); }
     var row = data.selected || state.rows.filter(function (item) { return item.supplier_ref === state.selected; })[0];
     var title = el("selected-upstream-title");
     if (title) title.textContent = row ? ((row.name || row.supplier_ref) + " · 供应商卖方 / Tbot采购方 · " + (row.phone_display || row.phone || row.supplier_ref) + (row.linked_customer_name ? (" · 客户: " + row.linked_customer_name) : "")) : "Select a supplier";
     ["upstream-copy-phone", "upstream-copy-wa"].forEach(function (id) { if (el(id)) el(id).disabled = !row; });
     var box = el("tbot-ui-live-upstream-chat"); if (!box) return;
     box.innerHTML = "";
-    var messages = Array.isArray(data.messages) ? data.messages : [];
-    if (!messages.length) { box.innerHTML = '<div class="data-placeholder">No upstream messages recorded for this supplier.</div>'; return; }
-    messages.forEach(function (message) {
+    if (!state.messages.length) { box.innerHTML = '<div class="data-placeholder">No upstream messages recorded for this supplier.</div>'; return; }
+    state.messages.forEach(function (message) {
       var article = document.createElement("article"); article.className = "client-message " + (message.direction === "outbound" ? "outbound" : "inbound");
       var meta = document.createElement("div"); meta.className = "client-message-meta"; meta.textContent = [message.ts_display || message.ts || "", message.direction || "", message.sender_label || ""].filter(Boolean).join(" · ");
       var text = document.createElement("div"); text.className = "client-message-text"; text.textContent = message.text || "";
       article.appendChild(meta); article.appendChild(text); box.appendChild(article);
     });
-    box.scrollTop = box.scrollHeight;
+    if (!appendOlder) box.scrollTop = box.scrollHeight;
   }
   function selectRow(ref) {
-    state.selected = ref; renderRows(); setMessage("Loading upstream conversation…");
-    var params = new URLSearchParams({ supplier_ref: ref, max_messages: "400" });
+    state.selected = ref; state.messages = []; state.messageBefore = 0; state.messageHasMore = false; renderRows(); setMessage("Loading latest 10 upstream messages…");
+    var params = new URLSearchParams({ supplier_ref: ref, limit: "10", before: "0" });
     var filters = {
       country: value("upstream-filter-country"),
       name_query: value("upstream-filter-name"),
@@ -83,7 +85,24 @@
       keyword: value("upstream-filter-keyword")
     };
     Object.keys(filters).forEach(function (key) { if (filters[key]) params.set(key, filters[key]); });
-    api("/api/ui/upstream?" + params.toString()).then(renderDetail).then(function () { setMessage(""); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Upstream history is unavailable.", true); });
+    api("/api/ui/upstream?" + params.toString()).then(function (data) { renderDetail(data, false); }).then(function () { setMessage(""); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Upstream history is unavailable.", true); });
+  }
+  function loadOlderUpstreamMessages() {
+    var box = el("tbot-ui-live-upstream-chat"); if (!box || !state.selected || state.messageLoading || !state.messageHasMore) return;
+    state.messageLoading = true; setMessage("Loading 10 older upstream messages…");
+    var oldHeight = box.scrollHeight, oldTop = box.scrollTop;
+    var params = new URLSearchParams({ supplier_ref: state.selected, limit: "10", before: String(state.messageBefore) });
+    var filters = { country: value("upstream-filter-country"), name_query: value("upstream-filter-name"), date_from: value("upstream-filter-from"), date_to: value("upstream-filter-to"), keyword: value("upstream-filter-keyword") };
+    Object.keys(filters).forEach(function (key) { if (filters[key]) params.set(key, filters[key]); });
+    api("/api/ui/upstream?" + params.toString()).then(function (data) {
+      var older = Array.isArray(data.messages) ? data.messages : [];
+      state.messages = older.concat(state.messages);
+      var page = data.messages_page || {};
+      state.messageBefore = Number(page.next_before || state.messageBefore + older.length);
+      state.messageHasMore = Boolean(page.has_more);
+      renderDetail({ selected: data.selected, messages_page: page }, true);
+      window.requestAnimationFrame(function () { box.scrollTop = Math.max(1, box.scrollHeight - oldHeight + oldTop); });
+    }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Older upstream history is unavailable.", true); }).then(function () { state.messageLoading = false; if (!state.messageHasMore) setMessage("Reached the beginning of this conversation."); });
   }
   function scheduleRecovery(load) { if (state.recoveryTimer || state.recoveryAttempts >= 4) return; state.recoveryAttempts += 1; state.recoveryTimer = window.setTimeout(function () { state.recoveryTimer = null; load(); }, 2500); }
   function loadUpstream() {
@@ -109,6 +128,7 @@
     if (event.target.id === "upstream-copy-wa") { var row2 = selectedRow(); if (row2) copy(row2.whatsapp_url || ("https://wa.me/" + String(row2.phone || "").replace(/\D/g, ""))); }
     if (event.target.id === "upstream-filter-apply" && state.selected) selectRow(state.selected);
   });
+  var chatBox = el("tbot-ui-live-upstream-chat"); if (chatBox) chatBox.addEventListener("scroll", function () { if (chatBox.scrollTop <= 24) loadOlderUpstreamMessages(); });
   var search = el("upstream-search"); if (search) search.addEventListener("keydown", function (event) { if (event.key === "Enter") loadUpstream(); });
   if (search) search.placeholder = "Search phone, name or country";
   var country = el("upstream-country"); if (country) country.addEventListener("change", loadUpstream);
