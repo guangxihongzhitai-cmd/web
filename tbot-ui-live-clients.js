@@ -1,7 +1,8 @@
 (function () {
   "use strict";
   var API = "https://api.hongzhtaichina.com";
-  var state = {clients: [], selected: null, detail: null, messages: [], messageBefore: 0, messageHasMore: false, messageLoading: false, recoveryTimer: null, recoveryAttempts: 0};
+  var LIVE_SYNC_MS = 4000;
+  var state = {clients: [], selected: null, detail: null, messages: [], messageBefore: 0, messageHasMore: false, messageLoading: false, recoveryTimer: null, recoveryAttempts: 0, liveTimer: null, syncing: false, listFingerprint: "", chatFingerprint: ""};
   function el(id) { return document.getElementById(id); }
   function setMessage(message, error) { var feedback = el("module-feedback"); if (!feedback) return; feedback.textContent = message || ""; feedback.classList.toggle("is-error", Boolean(error)); }
   function api(path, options) {
@@ -32,14 +33,99 @@
   function renderClients() { var list = el("clients-list"), count = el("clients-count"); if (!list) return; list.innerHTML = ""; if (count) count.textContent = String(state.clients.length); if (!state.clients.length) { list.innerHTML = '<div class="data-placeholder">No clients match this search.</div>'; return; } state.clients.forEach(function (client) { var row = document.createElement("button"); row.type = "button"; row.className = "client-row" + (state.selected === client.phone ? " active" : ""); row.setAttribute("role", "option"); row.setAttribute("aria-selected", state.selected === client.phone ? "true" : "false"); var head = document.createElement("div"); head.className = "client-row-head"; var name = document.createElement("strong"); name.textContent = client.name || client.phone_display || client.phone; var stamp = document.createElement("time"); stamp.className = "client-row-time"; stamp.textContent = client.last_activity_display || "—"; head.appendChild(name); head.appendChild(stamp); var meta = document.createElement("span"); meta.className = "client-row-meta"; meta.textContent = [client.phone_display || client.phone, client.country].filter(Boolean).join(" · "); row.appendChild(head); row.appendChild(meta); row.addEventListener("click", function () { selectClient(client.phone); }); list.appendChild(row); }); }
   function renderDetail(data, appendOlder) { state.detail = data; var client = data.selected || state.clients.filter(function (item) { return item.phone === state.selected; })[0]; var title = el("selected-client-title"); if (title) title.textContent = client ? ((client.name || client.phone_display || client.phone) + " · " + (client.phone_display || client.phone)) : "Select a client"; ["client-copy-name", "client-copy-phone", "client-copy-wa", "client-edit-name"].forEach(function (id) { if (el(id)) el(id).disabled = !client; }); if (!appendOlder) state.messages = Array.isArray(data.messages) ? data.messages : []; var page = data.messages_page || {}; if (!appendOlder) { state.messageBefore = Number(page.next_before || state.messages.length || 0); state.messageHasMore = Boolean(page.has_more); } var box = el("tbot-ui-live-client-chat"); if (!box) return; var oldHeight = box.scrollHeight; var oldTop = box.scrollTop; box.innerHTML = ""; if (!state.messages.length) { box.innerHTML = '<div class="data-placeholder">No messages match the current filters.</div>'; return; } state.messages.forEach(function (message) { var item = document.createElement("article"); item.className = "client-message " + (message.direction === "outbound" ? "outbound" : "inbound"); var meta = document.createElement("div"); meta.className = "client-message-meta"; meta.textContent = [message.ts_display || message.ts || "", message.direction || "", message.sender_label || "", message.dispatch_id ? ("dispatch=" + message.dispatch_id) : "", message.message_id ? ("msg=" + message.message_id) : ""].filter(Boolean).join(" · "); var text = document.createElement("div"); text.className = "client-message-text"; text.textContent = message.text || ""; item.appendChild(meta); item.appendChild(text); box.appendChild(item); }); if (appendOlder) box.scrollTop = Math.max(1, box.scrollHeight - oldHeight + oldTop); else box.scrollTop = box.scrollHeight; }
   function currentFilters() { return {country: value("chat-filter-country"), name_query: value("chat-filter-name"), date_from: value("chat-filter-from"), date_to: value("chat-filter-to"), keyword: value("chat-filter-keyword")}; }
-  function selectClient(phone) { state.selected = phone; state.messages = []; state.messageBefore = 0; state.messageHasMore = false; renderClients(); setMessage("Loading latest 10 messages…"); var filters = currentFilters(); var params = new URLSearchParams({phone: phone, limit: "10", before: "0"}); Object.keys(filters).forEach(function (key) { if (filters[key]) params.set(key, filters[key]); }); api("/api/ui/clients?" + params.toString()).then(function (data) { renderDetail(data, false); }).then(function () { setMessage(""); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Client history is unavailable.", true); }); }
+  function clientsFingerprint(rows) {
+    return (rows || []).map(function (row) {
+      return [row.phone || "", row.last_activity || "", row.name || "", row.linked_customer_phone || ""].join(":");
+    }).join("|");
+  }
+  function messagesFingerprint(rows) {
+    if (!rows || !rows.length) return "0";
+    var last = rows[rows.length - 1] || {};
+    return [rows.length, last.ts || "", last.message_id || "", last.dispatch_id || "", String(last.text || "").slice(-48)].join("|");
+  }
+  function selectClient(phone, options) {
+    options = options || {};
+    var silent = Boolean(options.silent);
+    state.selected = phone;
+    if (!silent) {
+      state.messages = [];
+      state.messageBefore = 0;
+      state.messageHasMore = false;
+      state.chatFingerprint = "";
+      renderClients();
+      setMessage("Loading latest 10 messages…");
+    }
+    var filters = currentFilters();
+    var params = new URLSearchParams({phone: phone, limit: "10", before: "0", refresh: String(Date.now())});
+    Object.keys(filters).forEach(function (key) { if (filters[key]) params.set(key, filters[key]); });
+    api("/api/ui/clients?" + params.toString()).then(function (data) {
+      var nextMessages = Array.isArray(data.messages) ? data.messages : [];
+      var nextFingerprint = messagesFingerprint(nextMessages);
+      if (silent && nextFingerprint === state.chatFingerprint) return;
+      state.chatFingerprint = nextFingerprint;
+      renderDetail(data, false);
+    }).then(function () { if (!silent) setMessage(""); }).catch(function (error) { if (!silent && error.message !== "unauthorized") setMessage("Client history is unavailable.", true); });
+  }
   function loadOlderClientMessages() { var box = el("tbot-ui-live-client-chat"); if (!box || !state.selected || state.messageLoading || !state.messageHasMore) return; state.messageLoading = true; setMessage("Loading 10 older messages…"); var oldHeight = box.scrollHeight; var oldTop = box.scrollTop; var params = new URLSearchParams({phone: state.selected, limit: "10", before: String(state.messageBefore)}); var filters = currentFilters(); Object.keys(filters).forEach(function (key) { if (filters[key]) params.set(key, filters[key]); }); api("/api/ui/clients?" + params.toString()).then(function (data) { var older = Array.isArray(data.messages) ? data.messages : []; state.messages = older.concat(state.messages); var page = data.messages_page || {}; state.messageBefore = Number(page.next_before || state.messageBefore + older.length); state.messageHasMore = Boolean(page.has_more); renderDetail({selected: data.selected, messages_page: page}, true); window.requestAnimationFrame(function () { box.scrollTop = Math.max(1, box.scrollHeight - oldHeight + oldTop); }); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Older client history is unavailable.", true); }).then(function () { state.messageLoading = false; if (!state.messageHasMore) setMessage("Reached the beginning of this conversation."); }); }
   function scheduleRecovery(load) { if (state.recoveryTimer || state.recoveryAttempts >= 4) return; state.recoveryAttempts += 1; state.recoveryTimer = window.setTimeout(function () { state.recoveryTimer = null; load(); }, 2500); }
-  function loadClients() { setMessage("Loading clients…"); var params = new URLSearchParams(); var search = value("clients-search"); var country = value("clients-country"); if (search) params.set("search", search); if (country) params.set("country", country); params.set("refresh", String(Date.now())); api("/api/ui/clients?" + params.toString()).then(function (data) { state.recoveryAttempts = 0; state.clients = Array.isArray(data.clients) ? data.clients : []; setOptions("clients-country", data.countries || [], "All countries"); setOptions("chat-filter-country", data.countries || [], "All"); renderClients(); if (state.selected && state.clients.some(function (client) { return client.phone === state.selected; })) selectClient(state.selected); else { state.selected = null; renderDetail({messages: []}); setMessage(""); } }).catch(function (error) { if (error.message !== "unauthorized") { setMessage("Client list is unavailable; retrying…", true); scheduleRecovery(loadClients); } }); }
+  function loadClients(options) {
+    options = options || {};
+    var silent = Boolean(options.silent);
+    if (state.syncing) return;
+    state.syncing = true;
+    if (!silent) setMessage("Loading clients…");
+    var params = new URLSearchParams();
+    var search = value("clients-search");
+    var country = value("clients-country");
+    if (search) params.set("search", search);
+    if (country) params.set("country", country);
+    params.set("refresh", String(Date.now()));
+    api("/api/ui/clients?" + params.toString()).then(function (data) {
+      state.recoveryAttempts = 0;
+      var nextClients = Array.isArray(data.clients) ? data.clients : [];
+      var nextFingerprint = clientsFingerprint(nextClients);
+      var listChanged = nextFingerprint !== state.listFingerprint;
+      state.clients = nextClients;
+      state.listFingerprint = nextFingerprint;
+      setOptions("clients-country", data.countries || [], "All countries");
+      setOptions("chat-filter-country", data.countries || [], "All");
+      if (!silent || listChanged) renderClients();
+      if (state.selected && state.clients.some(function (client) { return client.phone === state.selected; })) {
+        selectClient(state.selected, {silent: silent});
+      } else if (!silent) {
+        state.selected = null;
+        state.chatFingerprint = "";
+        renderDetail({messages: []});
+      }
+      if (!silent) setMessage("");
+    }).catch(function (error) {
+      if (!silent && error.message !== "unauthorized") {
+        setMessage("Client list is unavailable; retrying…", true);
+        scheduleRecovery(function () { loadClients(); });
+      }
+    }).then(function () { state.syncing = false; });
+  }
+  function clientsModuleActive() {
+    if (location.hash === "#clients") return true;
+    var panel = document.querySelector('.module-panel[data-panel="clients"]');
+    if (panel && panel.classList && panel.classList.contains("active")) return true;
+    var link = document.querySelector('.side-link[data-module="clients"].active');
+    return Boolean(link);
+  }
+  function scheduleLiveSync() {
+    if (state.liveTimer) window.clearInterval(state.liveTimer);
+    state.liveTimer = window.setInterval(function () {
+      if (!clientsModuleActive() || document.hidden) return;
+      loadClients({silent: true});
+    }, LIVE_SYNC_MS);
+  }
   function selectedClient() { return state.clients.filter(function (client) { return client.phone === state.selected; })[0] || (state.detail && state.detail.selected); }
   function copy(value) { if (!value || !navigator.clipboard) return; navigator.clipboard.writeText(value).then(function () { setMessage("Copied."); }).catch(function () { setMessage("Copy was blocked by the browser.", true); }); }
   function rename() { var client = selectedClient(); if (!client) return; var name = window.prompt("Display name", client.name || ""); if (name === null) return; api("/api/ui/clients/name", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({phone: client.phone, name: name.trim()})}).then(function () { setMessage("Display name updated."); loadClients(); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Display name was not updated.", true); }); }
   document.addEventListener("click", function (event) { var link = event.target.closest && event.target.closest('.side-link[data-module="clients"]'); var refresh = event.target.closest && event.target.closest('[data-action="clients-refresh"]'); if (link || refresh) window.setTimeout(loadClients, 0); var focus = event.target.closest && event.target.closest('[data-action="clients-open"]'); if (focus) { var box = el("tbot-ui-live-client-chat"); if (box) box.focus(); } if (event.target.id === "chat-filter-apply" && state.selected) selectClient(state.selected); if (event.target.id === "client-copy-name") { var c = selectedClient(); if (c) copy(c.name || ""); } if (event.target.id === "client-copy-phone") { var c2 = selectedClient(); if (c2) copy(c2.phone_display || c2.phone); } if (event.target.id === "client-copy-wa") { var c3 = selectedClient(); if (c3) copy(c3.whatsapp_url || ("https://wa.me/" + c3.phone.replace(/\D/g, ""))); } if (event.target.id === "client-edit-name") rename(); });
   var chatBox = el("tbot-ui-live-client-chat"); if (chatBox) chatBox.addEventListener("scroll", function () { if (chatBox.scrollTop <= 24) loadOlderClientMessages(); });
-  var search = el("clients-search"); if (search) search.addEventListener("keydown", function (event) { if (event.key === "Enter") loadClients(); }); window.addEventListener("hashchange", function () { if (location.hash === "#clients") loadClients(); }); if (location.hash === "#clients") loadClients();
+  var search = el("clients-search"); if (search) search.addEventListener("keydown", function (event) { if (event.key === "Enter") loadClients(); });
+  window.addEventListener("hashchange", function () { if (location.hash === "#clients") loadClients(); });
+  if (location.hash === "#clients") loadClients();
+  scheduleLiveSync();
 })();

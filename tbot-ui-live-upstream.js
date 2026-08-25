@@ -1,7 +1,8 @@
 (function () {
   "use strict";
   var API = "https://api.hongzhtaichina.com";
-  var state = { rows: [], selected: null, detail: null, messages: [], messageBefore: 0, messageHasMore: false, messageLoading: false, recoveryTimer: null, recoveryAttempts: 0 };
+  var LIVE_SYNC_MS = 4000;
+  var state = { rows: [], selected: null, detail: null, messages: [], messageBefore: 0, messageHasMore: false, messageLoading: false, recoveryTimer: null, recoveryAttempts: 0, liveTimer: null, syncing: false, listFingerprint: "", chatFingerprint: "" };
   function el(id) { return document.getElementById(id); }
   function setMessage(message, error) {
     var feedback = el("module-feedback");
@@ -74,9 +75,29 @@
     });
     if (!appendOlder) box.scrollTop = box.scrollHeight;
   }
-  function selectRow(ref) {
-    state.selected = ref; state.messages = []; state.messageBefore = 0; state.messageHasMore = false; renderRows(); setMessage("Loading latest 10 upstream messages…");
-    var params = new URLSearchParams({ supplier_ref: ref, limit: "10", before: "0" });
+  function rowsFingerprint(rows) {
+    return (rows || []).map(function (row) {
+      return [row.supplier_ref || "", row.last_activity || "", row.status || "", row.linked_customer_phone || ""].join(":");
+    }).join("|");
+  }
+  function messagesFingerprint(rows) {
+    if (!rows || !rows.length) return "0";
+    var last = rows[rows.length - 1] || {};
+    return [rows.length, last.ts || "", last.message_id || "", String(last.text || "").slice(-48)].join("|");
+  }
+  function selectRow(ref, options) {
+    options = options || {};
+    var silent = Boolean(options.silent);
+    state.selected = ref;
+    if (!silent) {
+      state.messages = [];
+      state.messageBefore = 0;
+      state.messageHasMore = false;
+      state.chatFingerprint = "";
+      renderRows();
+      setMessage("Loading latest 10 upstream messages…");
+    }
+    var params = new URLSearchParams({ supplier_ref: ref, limit: "10", before: "0", refresh: String(Date.now()) });
     var filters = {
       country: value("upstream-filter-country"),
       name_query: value("upstream-filter-name"),
@@ -85,7 +106,13 @@
       keyword: value("upstream-filter-keyword")
     };
     Object.keys(filters).forEach(function (key) { if (filters[key]) params.set(key, filters[key]); });
-    api("/api/ui/upstream?" + params.toString()).then(function (data) { renderDetail(data, false); }).then(function () { setMessage(""); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Upstream history is unavailable.", true); });
+    api("/api/ui/upstream?" + params.toString()).then(function (data) {
+      var nextMessages = Array.isArray(data.messages) ? data.messages : [];
+      var nextFingerprint = messagesFingerprint(nextMessages);
+      if (silent && nextFingerprint === state.chatFingerprint) return;
+      state.chatFingerprint = nextFingerprint;
+      renderDetail(data, false);
+    }).then(function () { if (!silent) setMessage(""); }).catch(function (error) { if (!silent && error.message !== "unauthorized") setMessage("Upstream history is unavailable.", true); });
   }
   function loadOlderUpstreamMessages() {
     var box = el("tbot-ui-live-upstream-chat"); if (!box || !state.selected || state.messageLoading || !state.messageHasMore) return;
@@ -105,17 +132,55 @@
     }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Older upstream history is unavailable.", true); }).then(function () { state.messageLoading = false; if (!state.messageHasMore) setMessage("Reached the beginning of this conversation."); });
   }
   function scheduleRecovery(load) { if (state.recoveryTimer || state.recoveryAttempts >= 4) return; state.recoveryAttempts += 1; state.recoveryTimer = window.setTimeout(function () { state.recoveryTimer = null; load(); }, 2500); }
-  function loadUpstream() {
-    setMessage("Loading upstream suppliers…");
-    var params = new URLSearchParams(); var search = value("upstream-search"); var country = value("upstream-country");
-    if (search) params.set("search", search); if (country) params.set("country", country); params.set("refresh", String(Date.now()));
+  function loadUpstream(options) {
+    options = options || {};
+    var silent = Boolean(options.silent);
+    if (state.syncing) return;
+    state.syncing = true;
+    if (!silent) setMessage("Loading upstream suppliers…");
+    var params = new URLSearchParams();
+    var search = value("upstream-search");
+    var country = value("upstream-country");
+    if (search) params.set("search", search);
+    if (country) params.set("country", country);
+    params.set("refresh", String(Date.now()));
     api("/api/ui/upstream?" + params.toString()).then(function (data) {
       state.recoveryAttempts = 0;
-      state.rows = Array.isArray(data.upstream) ? data.upstream : [];
-      setOptions("upstream-country", data.countries || [], "All countries"); renderRows();
-      if (state.selected && state.rows.some(function (row) { return row.supplier_ref === state.selected; })) selectRow(state.selected);
-      else { state.selected = null; renderDetail({ messages: [] }); setMessage(""); }
-    }).catch(function (error) { if (error.message !== "unauthorized") { setMessage("Upstream list is unavailable; retrying…", true); scheduleRecovery(loadUpstream); } });
+      var nextRows = Array.isArray(data.upstream) ? data.upstream : [];
+      var nextFingerprint = rowsFingerprint(nextRows);
+      var listChanged = nextFingerprint !== state.listFingerprint;
+      state.rows = nextRows;
+      state.listFingerprint = nextFingerprint;
+      setOptions("upstream-country", data.countries || [], "All countries");
+      if (!silent || listChanged) renderRows();
+      if (state.selected && state.rows.some(function (row) { return row.supplier_ref === state.selected; })) {
+        selectRow(state.selected, {silent: silent});
+      } else if (!silent) {
+        state.selected = null;
+        state.chatFingerprint = "";
+        renderDetail({ messages: [] });
+      }
+      if (!silent) setMessage("");
+    }).catch(function (error) {
+      if (!silent && error.message !== "unauthorized") {
+        setMessage("Upstream list is unavailable; retrying…", true);
+        scheduleRecovery(function () { loadUpstream(); });
+      }
+    }).then(function () { state.syncing = false; });
+  }
+  function upstreamModuleActive() {
+    if (location.hash === "#upstream") return true;
+    var panel = document.querySelector('.module-panel[data-panel="upstream"]');
+    if (panel && panel.classList && panel.classList.contains("active")) return true;
+    var link = document.querySelector('.side-link[data-module="upstream"].active');
+    return Boolean(link);
+  }
+  function scheduleLiveSync() {
+    if (state.liveTimer) window.clearInterval(state.liveTimer);
+    state.liveTimer = window.setInterval(function () {
+      if (!upstreamModuleActive() || document.hidden) return;
+      loadUpstream({silent: true});
+    }, LIVE_SYNC_MS);
   }
   function selectedRow() { return state.rows.filter(function (row) { return row.supplier_ref === state.selected; })[0] || (state.detail && state.detail.selected); }
   function copy(text) { if (text && navigator.clipboard) navigator.clipboard.writeText(text).then(function () { setMessage("Copied."); }); }
@@ -134,4 +199,5 @@
   var country = el("upstream-country"); if (country) country.addEventListener("change", loadUpstream);
   window.addEventListener("hashchange", function () { if (location.hash === "#upstream") loadUpstream(); });
   if (location.hash === "#upstream") loadUpstream();
+  scheduleLiveSync();
 })();
