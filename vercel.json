@@ -3,6 +3,16 @@
   "builds": [
     { "src": "index.html", "use": "@vercel/static" }
   ],
+  "redirects": [
+    { "source": "/products", "destination": "/#products", "permanent": true },
+    { "source": "/about", "destination": "/#about", "permanent": true },
+    { "source": "/about-us", "destination": "/#about", "permanent": true },
+    { "source": "/contact", "destination": "/#contact", "permanent": true },
+    { "source": "/gallery", "destination": "/#gallery", "permanent": true },
+    { "source": "/services", "destination": "/#services", "permanent": true },
+    { "source": "/home", "destination": "/", "permanent": true },
+    { "source": "/concrete-pump-trucks", "destination": "/#product-pump", "permanent": true }
+  ],
   "routes": [
     { "src": "/(.*)", "dest": "/$1" }
   ]
