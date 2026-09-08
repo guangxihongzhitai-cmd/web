@@ -40,8 +40,9 @@
   }
   function messagesFingerprint(rows) {
     if (!rows || !rows.length) return "0";
+    var first = rows[0] || {};
     var last = rows[rows.length - 1] || {};
-    return [rows.length, last.ts || "", last.message_id || "", last.dispatch_id || "", String(last.text || "").slice(-48)].join("|");
+    return [rows.length, first.ts || "", last.ts || "", last.message_id || "", last.dispatch_id || "", String(first.text || "").slice(-24), String(last.text || "").slice(-48)].join("|");
   }
   function selectClient(phone, options) {
     options = options || {};
@@ -66,7 +67,7 @@
       renderDetail(data, false);
     }).then(function () { if (!silent) setMessage(""); }).catch(function (error) { if (!silent && error.message !== "unauthorized") setMessage("Client history is unavailable.", true); });
   }
-  function loadOlderClientMessages() { var box = el("tbot-ui-live-client-chat"); if (!box || !state.selected || state.messageLoading || !state.messageHasMore) return; state.messageLoading = true; setMessage("Loading 10 older messages…"); var oldHeight = box.scrollHeight; var oldTop = box.scrollTop; var params = new URLSearchParams({phone: state.selected, limit: "10", before: String(state.messageBefore)}); var filters = currentFilters(); Object.keys(filters).forEach(function (key) { if (filters[key]) params.set(key, filters[key]); }); api("/api/ui/clients?" + params.toString()).then(function (data) { var older = Array.isArray(data.messages) ? data.messages : []; state.messages = older.concat(state.messages); var page = data.messages_page || {}; state.messageBefore = Number(page.next_before || state.messageBefore + older.length); state.messageHasMore = Boolean(page.has_more); renderDetail({selected: data.selected, messages_page: page}, true); window.requestAnimationFrame(function () { box.scrollTop = Math.max(1, box.scrollHeight - oldHeight + oldTop); }); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Older client history is unavailable.", true); }).then(function () { state.messageLoading = false; if (!state.messageHasMore) setMessage("Reached the beginning of this conversation."); }); }
+  function loadOlderClientMessages() { var box = el("tbot-ui-live-client-chat"); if (!box || !state.selected || state.messageLoading || !state.messageHasMore) return; state.messageLoading = true; setMessage("Loading 10 older messages…"); var oldHeight = box.scrollHeight; var oldTop = box.scrollTop; var params = new URLSearchParams({phone: state.selected, limit: "10", before: String(state.messageBefore), refresh: String(Date.now())}); var filters = currentFilters(); Object.keys(filters).forEach(function (key) { if (filters[key]) params.set(key, filters[key]); }); api("/api/ui/clients?" + params.toString()).then(function (data) { var older = Array.isArray(data.messages) ? data.messages : []; state.messages = older.concat(state.messages); var page = data.messages_page || {}; state.messageBefore = Number(page.next_before || state.messageBefore + older.length); state.messageHasMore = Boolean(page.has_more); renderDetail({selected: data.selected, messages_page: page}, true); window.requestAnimationFrame(function () { box.scrollTop = Math.max(1, box.scrollHeight - oldHeight + oldTop); }); }).catch(function (error) { if (error.message !== "unauthorized") setMessage("Older client history is unavailable.", true); }).then(function () { state.messageLoading = false; if (!state.messageHasMore) setMessage("Reached the beginning of this conversation."); }); }
   function scheduleRecovery(load) { if (state.recoveryTimer || state.recoveryAttempts >= 4) return; state.recoveryAttempts += 1; state.recoveryTimer = window.setTimeout(function () { state.recoveryTimer = null; load(); }, 2500); }
   function loadClients(options) {
     options = options || {};

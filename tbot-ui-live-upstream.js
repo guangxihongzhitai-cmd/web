@@ -82,8 +82,9 @@
   }
   function messagesFingerprint(rows) {
     if (!rows || !rows.length) return "0";
+    var first = rows[0] || {};
     var last = rows[rows.length - 1] || {};
-    return [rows.length, last.ts || "", last.message_id || "", String(last.text || "").slice(-48)].join("|");
+    return [rows.length, first.ts || "", last.ts || "", last.message_id || "", String(first.text || "").slice(-24), String(last.text || "").slice(-48)].join("|");
   }
   function selectRow(ref, options) {
     options = options || {};
@@ -118,7 +119,7 @@
     var box = el("tbot-ui-live-upstream-chat"); if (!box || !state.selected || state.messageLoading || !state.messageHasMore) return;
     state.messageLoading = true; setMessage("Loading 10 older upstream messages…");
     var oldHeight = box.scrollHeight, oldTop = box.scrollTop;
-    var params = new URLSearchParams({ supplier_ref: state.selected, limit: "10", before: String(state.messageBefore) });
+    var params = new URLSearchParams({ supplier_ref: state.selected, limit: "10", before: String(state.messageBefore), refresh: String(Date.now()) });
     var filters = { country: value("upstream-filter-country"), name_query: value("upstream-filter-name"), date_from: value("upstream-filter-from"), date_to: value("upstream-filter-to"), keyword: value("upstream-filter-keyword") };
     Object.keys(filters).forEach(function (key) { if (filters[key]) params.set(key, filters[key]); });
     api("/api/ui/upstream?" + params.toString()).then(function (data) {

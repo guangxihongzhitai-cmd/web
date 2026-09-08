@@ -51,4 +51,13 @@ row_*.png
 type_dd.png
 www_check.png
 after_cname.png
-.vercelignore
+# Local models
+models/
+*.gguf
+*.ggml
+*.pt
+*.pth
+*.safetensors
+*.onnx
+*.ckpt
+*.bin
