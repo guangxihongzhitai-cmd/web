@@ -1,5 +1,5 @@
 /**
- * Shared chrome for nested public pages (FAQ, used pump trucks).
+ * Shared chrome for nested public pages (FAQ, used pump trucks, listings).
  * Does not load the homepage chat widget or any API hosts.
  */
 (function () {
