@@ -1,3 +1,7 @@
+# Production: GitHub Pages (CNAME www.hongzhtaichina.com) behind Cloudflare.
+# /home is not a site page. Do not add home/index.html (that is a crawlable 200
+# soft redirect). HTTP 301 for /home and /home/ is a Cloudflare Redirect Rule:
+# see .github/cloudflare-www-home-redirect.md
 name: Deploy GitHub Pages
 
 on:
@@ -23,6 +27,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Guard against /home soft page
+        run: |
+          if [ -e home/index.html ] || [ -e home.html ]; then
+            echo "::error::Do not ship a /home HTML page; it is crawled as HTTP 200. Use the Cloudflare 301 in .github/cloudflare-www-home-redirect.md"
+            exit 1
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
