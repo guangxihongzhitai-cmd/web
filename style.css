@@ -507,6 +507,9 @@ section[id] {
   .brand-grid {
     grid-template-columns: repeat(5, 1fr);
   }
+  .brand-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .brand-item {
@@ -735,6 +738,17 @@ section[id] {
   margin-top: 1rem;
   color: rgba(255, 255, 255, 0.75);
   font-size: 1rem;
+}
+
+.cta-band .btn-outline {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+.cta-band .btn-outline:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #ffffff;
 }
 
 /* Footer extras ---------------------------------------------------------- */
@@ -1055,4 +1069,138 @@ section[id] {
   opacity: 1;
   color: #f5a623;
   outline: 2px solid #f5a623;
+}
+
+/* Inner GEO answer pages (FAQ, used pump trucks) ------------------------- */
+.inner-hero {
+  position: relative;
+  min-height: 320px;
+  padding-top: var(--hzt-header-height);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.inner-hero .hero-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.inner-hero .hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 3.25rem 0 2.5rem;
+  max-width: 52rem;
+}
+
+.inner-hero .hero-title {
+  font-size: clamp(1.65rem, 4.5vw, 2.75rem);
+}
+
+.hero-title-copy {
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.breadcrumb {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+  margin-bottom: 0.85rem;
+}
+
+.breadcrumb a {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.breadcrumb a:hover {
+  color: var(--hzt-accent);
+}
+
+.answer-lede {
+  font-size: 1.125rem;
+  line-height: 1.75;
+  color: var(--hzt-gray-700);
+  max-width: 48rem;
+}
+
+.page-prose a:not(.btn-primary):not(.btn-outline) {
+  color: var(--hzt-primary);
+  font-weight: 600;
+}
+
+.page-prose a:not(.btn-primary):not(.btn-outline):hover {
+  color: var(--hzt-accent);
+}
+
+.faq-item {
+  background: var(--hzt-white);
+  border-left: 4px solid var(--hzt-accent);
+  box-shadow: var(--hzt-shadow-card);
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.faq-item h2 {
+  font-family: "Oswald", sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--hzt-dark);
+  margin-bottom: 0.75rem;
+  line-height: 1.35;
+}
+
+.faq-item p {
+  color: var(--hzt-gray-700);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.example-caption {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--hzt-gray-500);
+  margin-top: 0.5rem;
+}
+
+.process-num {
+  font-family: "Oswald", sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+  color: var(--hzt-accent);
+  margin-bottom: 0.5rem;
+}
+
+.entity-block {
+  background: var(--hzt-white);
+  border-left: 4px solid var(--hzt-accent);
+  box-shadow: var(--hzt-shadow-card);
+  padding: 1.75rem 1.85rem;
+}
+
+.entity-block dt {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hzt-accent);
+  margin-top: 1rem;
+}
+
+.entity-block dt:first-child {
+  margin-top: 0;
+}
+
+.entity-block dd {
+  color: var(--hzt-dark);
+  font-size: 1.05rem;
+  line-height: 1.65;
+  margin-top: 0.3rem;
 }
