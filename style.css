@@ -1169,3 +1169,30 @@ section[id] {
   color: var(--hzt-accent);
   margin-bottom: 0.5rem;
 }
+
+.entity-block {
+  background: var(--hzt-white);
+  border-left: 4px solid var(--hzt-accent);
+  box-shadow: var(--hzt-shadow-card);
+  padding: 1.75rem 1.85rem;
+}
+
+.entity-block dt {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hzt-accent);
+  margin-top: 1rem;
+}
+
+.entity-block dt:first-child {
+  margin-top: 0;
+}
+
+.entity-block dd {
+  color: var(--hzt-dark);
+  font-size: 1.05rem;
+  line-height: 1.65;
+  margin-top: 0.3rem;
+}
