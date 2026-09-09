@@ -507,6 +507,9 @@ section[id] {
   .brand-grid {
     grid-template-columns: repeat(5, 1fr);
   }
+  .brand-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .brand-item {
@@ -1095,6 +1098,11 @@ section[id] {
 
 .inner-hero .hero-title {
   font-size: clamp(1.65rem, 4.5vw, 2.75rem);
+}
+
+.hero-title-copy {
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 
 .breadcrumb {
