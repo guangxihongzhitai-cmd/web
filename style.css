@@ -1110,12 +1110,12 @@ section[id] {
   max-width: 48rem;
 }
 
-.page-prose a {
+.page-prose a:not(.btn-primary):not(.btn-outline) {
   color: var(--hzt-primary);
   font-weight: 600;
 }
 
-.page-prose a:hover {
+.page-prose a:not(.btn-primary):not(.btn-outline):hover {
   color: var(--hzt-accent);
 }
 
