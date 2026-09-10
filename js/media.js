@@ -37,14 +37,14 @@
       ],
     },
     products: {
-      pump: PROD + "sany-benz-60m-left-front.jpg",
+      pump: PROD + "sany-60m-left-front.jpg",
       loader: PROD + "xcmg-lw500hv-left-front.jpg",
       excavator: PROD + "liugong-920e-excavator-side.jpg",
       rig: PROD + "xcmg-xr460e-side.jpg",
     },
     about: BIG + "xcmg-loader-yard-side.jpg",
     brands: {
-      sany: GAL + "sany-benz-60m-left-front.jpg",
+      sany: GAL + "sany-60m-left-front.jpg",
       zoomlion: GAL + "zoomlion-sitrak-56m-left-front.jpg",
       liugong: BIG + "liugong-920e-excavator-side.jpg",
       xcmg: BIG + "xcmg-lw500hv-left-front.jpg",
@@ -52,7 +52,7 @@
     },
     gallery: [
       /* Pump trucks */
-      GAL + "sany-benz-60m-left-front.jpg",
+      GAL + "sany-60m-left-front.jpg",
       GAL + "sany-47m-left-front.jpg",
       GAL + "putzmeister-isuzu-46m-left-front.jpg",
       GAL + "putzmeister-fleet-front.jpg",
