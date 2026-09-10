@@ -1143,6 +1143,14 @@ a.brand-item {
   color: var(--hzt-accent);
 }
 
+.page-prose .on-dark-copy a {
+  color: var(--hzt-accent);
+}
+
+.page-prose .on-dark-copy a:hover {
+  color: #fff;
+}
+
 .btn-outline-on-light {
   color: var(--hzt-primary);
   border-color: var(--hzt-primary);
