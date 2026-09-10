@@ -519,6 +519,11 @@ section[id] {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+a.brand-item {
+  display: block;
+  text-decoration: none;
+}
+
 .brand-item img {
   width: 100%;
   height: 100%;
@@ -1129,13 +1134,21 @@ section[id] {
   max-width: 48rem;
 }
 
-.page-prose a:not(.btn-primary):not(.btn-outline):not(.listing-card) {
+.page-prose a:not(.btn-primary):not(.btn-outline):not(.listing-card):not(.brand-item) {
   color: var(--hzt-primary);
   font-weight: 600;
 }
 
-.page-prose a:not(.btn-primary):not(.btn-outline):not(.listing-card):hover {
+.page-prose a:not(.btn-primary):not(.btn-outline):not(.listing-card):not(.brand-item):hover {
   color: var(--hzt-accent);
+}
+
+.page-prose .on-dark-copy a {
+  color: var(--hzt-accent);
+}
+
+.page-prose .on-dark-copy a:hover {
+  color: #fff;
 }
 
 .btn-outline-on-light {
