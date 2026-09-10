@@ -1129,13 +1129,24 @@ section[id] {
   max-width: 48rem;
 }
 
-.page-prose a:not(.btn-primary):not(.btn-outline) {
+.page-prose a:not(.btn-primary):not(.btn-outline):not(.listing-card) {
   color: var(--hzt-primary);
   font-weight: 600;
 }
 
-.page-prose a:not(.btn-primary):not(.btn-outline):hover {
+.page-prose a:not(.btn-primary):not(.btn-outline):not(.listing-card):hover {
   color: var(--hzt-accent);
+}
+
+.btn-outline-on-light {
+  color: var(--hzt-primary);
+  border-color: var(--hzt-primary);
+}
+
+.btn-outline-on-light:hover {
+  color: var(--hzt-white);
+  background: var(--hzt-primary);
+  border-color: var(--hzt-primary);
 }
 
 .faq-item {
@@ -1203,4 +1214,131 @@ section[id] {
   font-size: 1.05rem;
   line-height: 1.65;
   margin-top: 0.3rem;
+}
+
+/* GEO P3 listing pages --------------------------------------------------- */
+.inner-hero-plain {
+  background: linear-gradient(
+    135deg,
+    var(--hzt-primary) 0%,
+    var(--hzt-primary-dark) 52%,
+    var(--hzt-dark) 100%
+  );
+}
+
+.inner-hero-plain .hero-content {
+  max-width: 56rem;
+}
+
+.specs-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--hzt-white);
+  box-shadow: var(--hzt-shadow-card);
+  border-left: 4px solid var(--hzt-accent);
+}
+
+.specs-table th,
+.specs-table td {
+  text-align: left;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+.specs-table tr:last-child th,
+.specs-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.specs-table th {
+  width: 11rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hzt-accent);
+}
+
+.specs-table td {
+  color: var(--hzt-dark);
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.photo-ask {
+  background: var(--hzt-white);
+  border: 1px dashed rgba(0, 61, 122, 0.35);
+  padding: 1.5rem 1.65rem;
+}
+
+.photo-ask h2 {
+  font-family: "Oswald", sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--hzt-dark);
+  margin-bottom: 0.65rem;
+}
+
+.photo-ask p {
+  color: var(--hzt-gray-700);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.listing-index {
+  display: grid;
+  gap: 1rem;
+}
+
+.listing-card {
+  display: block;
+  background: var(--hzt-white);
+  border-left: 4px solid var(--hzt-accent);
+  box-shadow: var(--hzt-shadow-card);
+  padding: 1.25rem 1.4rem;
+  color: inherit;
+  text-decoration: none;
+  transition: transform var(--hzt-transition), box-shadow var(--hzt-transition);
+}
+
+.listing-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
+}
+
+.listing-card h2 {
+  font-family: "Oswald", sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: var(--hzt-dark);
+  margin-bottom: 0.4rem;
+}
+
+.listing-card p {
+  color: var(--hzt-gray-700);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.listing-card .listing-meta {
+  margin-top: 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--hzt-primary);
+}
+
+.other-listings {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.other-listings a {
+  display: block;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid #e5e7eb;
 }
