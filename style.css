@@ -1355,3 +1355,90 @@ a.brand-item {
   padding: 0.7rem 0;
   border-bottom: 1px solid #e5e7eb;
 }
+
+/* GEO week-2 inspection checklist --------------------------------------- */
+.article-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.article-toc a {
+  font-size: 0.85rem;
+}
+
+.check-block {
+  background: var(--hzt-white);
+  border-left: 4px solid var(--hzt-accent);
+  box-shadow: var(--hzt-shadow-card);
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.check-block h2,
+.check-block h3 {
+  font-family: "Oswald", sans-serif;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--hzt-dark);
+  line-height: 1.35;
+}
+
+.check-block h2 {
+  font-size: 1.15rem;
+  margin-bottom: 0.75rem;
+}
+
+.check-block h3 {
+  font-size: 1.02rem;
+  margin: 1.35rem 0 0.6rem;
+}
+
+.check-block p {
+  color: var(--hzt-gray-700);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.check-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+}
+
+.check-list li {
+  position: relative;
+  padding-left: 1.85rem;
+  margin-bottom: 0.6rem;
+  color: var(--hzt-gray-700);
+  line-height: 1.65;
+  font-size: 0.95rem;
+}
+
+.check-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.4rem;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid var(--hzt-accent);
+  background: var(--hzt-white);
+}
+
+.flag-list li::before {
+  border-color: #b45309;
+  background: #b45309;
+}
+
+.rule-callout {
+  background: #fff8eb;
+  border-left: 4px solid var(--hzt-accent);
+  padding: 0.95rem 1.15rem;
+  margin-top: 1rem;
+  font-weight: 600;
+  color: var(--hzt-dark);
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
