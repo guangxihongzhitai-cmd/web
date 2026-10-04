@@ -1321,7 +1321,8 @@ a.brand-item {
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
 }
 
-.listing-card h2 {
+.listing-card h2,
+.listing-card h3 {
   font-family: "Oswald", sans-serif;
   font-size: 1.15rem;
   letter-spacing: 0.03em;
