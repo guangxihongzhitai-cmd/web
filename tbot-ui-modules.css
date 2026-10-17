@@ -23,3 +23,31 @@
 .sandbox-projection .client-message.sandbox-tbot{margin-left:auto;background:#e6f1ff;border-color:#c5ddf8}
 .sandbox-projection .client-message.sandbox-gbot{margin-left:auto;background:#eef1ff;border-color:#d5dcf5}
 .sandbox-projection .client-message.sandbox-customer,.sandbox-projection .client-message.sandbox-supplier{margin-right:auto;margin-left:0}
+.crm-toolbar{flex-wrap:wrap;gap:8px}
+.crm-check{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);white-space:nowrap}
+.crm-snapshot{padding:2px 2px 6px;color:var(--muted);font-size:11px}
+.crm-snapshot:empty{display:none}
+.crm-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;line-height:1.6;white-space:nowrap;color:#475569;background:#eef2f6}
+.crm-badge-due{color:#9a3412;background:#ffedd5}
+.crm-badge-dnc{color:#a34b4b;background:#fdecec}
+.crm-badge-takeover{color:#1d4ed8;background:#e0ebff}
+.crm-last{display:block;margin-top:3px;color:#5b6b7d;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crm-facts{grid-template-columns:84px minmax(0,1fr)}
+.crm-facts dd{white-space:pre-wrap}
+.crm-identities{padding:8px 14px;border-bottom:1px solid var(--line);background:#fff;font-size:12px}
+.crm-identities:empty{display:none}
+.crm-identities h3{margin:2px 0 4px;font-size:12px;letter-spacing:.04em;color:var(--muted)}
+.crm-identities ul{margin:0;padding-left:1.2em}
+.crm-projection .client-message.crm-in{margin-right:auto;margin-left:0}
+.crm-projection .client-message.crm-out{margin-left:auto;background:#e6f1ff;border-color:#c5ddf8}
+.crm-projection .client-message.crm-note{margin:0 auto;background:#f5f5f4;border-style:dashed}
+.crm-projection .client-message.crm-status-draft{background:#fffbea;border:1px dashed #e5c76b}
+.crm-projection .client-message.crm-status-blocked{background:#fdf0f0;border:1px dashed #e0a3a3}
+.crm-projection .client-message.crm-status-muted{opacity:.7}
+.crm-status{display:inline-block;padding:0 6px;border-radius:999px;font-size:10px;font-weight:700}
+.crm-status-tag-ok{color:#13795b;background:#e7f7ef}
+.crm-status-tag-draft{color:#8a6100;background:#fff3c4}
+.crm-status-tag-blocked{color:#a34b4b;background:#fdecec}
+.crm-status-tag-warn{color:#9a3412;background:#ffedd5}
+.crm-status-tag-muted{color:#64748b;background:#eef2f6}
+.crm-check input{width:auto;min-width:0;margin:0;flex:none}
