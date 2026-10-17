@@ -18,7 +18,7 @@
     button.dataset.action = action; button.textContent = 'Refresh'; button.setAttribute('aria-label', label); button.title = label;
     actions.appendChild(button);
   }
-  function installAll() { install('clients', 'clients-count', 'clients-refresh', 'Refresh Clients list'); install('upstream', 'upstream-count', 'upstream-refresh', 'Refresh Upstream list'); }
+  function installAll() { install('clients', 'clients-count', 'clients-refresh', 'Refresh Clients list'); install('upstream', 'upstream-count', 'upstream-refresh', 'Refresh Upstream list'); install('sandbox', 'sandbox-count', 'sandbox-refresh', '刷新沙盘记录'); }
   installAll();
   new MutationObserver(installAll).observe(document.body, { childList: true, subtree: true });
 }());
