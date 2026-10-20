@@ -51,3 +51,14 @@
 .crm-status-tag-warn{color:#9a3412;background:#ffedd5}
 .crm-status-tag-muted{color:#64748b;background:#eef2f6}
 .crm-check input{width:auto;min-width:0;margin:0;flex:none}
+.crm-text-zh{margin-top:4px;color:#8b98a8;font-size:11px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.crm-composer{display:flex;flex-direction:column;gap:8px;padding:10px 14px 12px;border-top:1px solid var(--line);background:#fff}
+.crm-composer[hidden]{display:none !important}
+.crm-composer textarea{box-sizing:border-box;width:100%;min-height:68px;max-height:180px;resize:vertical;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font:inherit;color:#20344b;background:#fff}
+.crm-composer-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.crm-composer-bar button{border:1px solid var(--line);background:#f7faff;color:var(--blue);border-radius:4px;padding:8px 12px;font-weight:700;cursor:pointer}
+.crm-composer-bar button:disabled{opacity:.45;cursor:not-allowed}
+.crm-compose-status{color:#64748b;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.crm-compose-status.is-error{color:#a34b4b}
+button.crm-approve{border:0;cursor:pointer;font-family:inherit;font-weight:700;line-height:1.6}
+button.crm-approve:disabled{cursor:default;opacity:1}
