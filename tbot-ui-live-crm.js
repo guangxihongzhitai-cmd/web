@@ -78,6 +78,106 @@
       return Number(a && a.id || 0) - Number(b && b.id || 0);
     });
   }
+  // List order is applied in the browser to whatever /api/ui/crm/buyers already returned.
+  var SORT_LATEST = "latest";
+  var SORT_FREQUENCY = "frequency";
+  var SORT_STORAGE_KEY = "tbot-crm-sort";
+  function normalizeSort(value) {
+    return String(value || "").trim().toLowerCase() === SORT_FREQUENCY ? SORT_FREQUENCY : SORT_LATEST;
+  }
+  function readStoredSort(storage) {
+    try { return normalizeSort(storage && storage.getItem(SORT_STORAGE_KEY)); }
+    catch (e) { return SORT_LATEST; }
+  }
+  function writeStoredSort(storage, value) {
+    var mode = normalizeSort(value);
+    try { if (storage && storage.setItem) storage.setItem(SORT_STORAGE_KEY, mode); }
+    catch (e) {}
+    return mode;
+  }
+  function stampMs(value) {
+    if (value == null || value === "") return NaN;
+    if (typeof value === "number") {
+      if (!isFinite(value)) return NaN;
+      if (value > 1e12) return value;
+      if (value > 1e9) return value * 1000;
+      return NaN;
+    }
+    var text = String(value).trim();
+    if (!text) return NaN;
+    if (/^\d{13}$/.test(text)) return Number(text);
+    if (/^\d{10}$/.test(text)) return Number(text) * 1000;
+    var ms = Date.parse(text);
+    return isNaN(ms) ? NaN : ms;
+  }
+  function considerStamp(best, value) {
+    var ms = stampMs(value);
+    if (isNaN(ms)) return best;
+    if (isNaN(best) || ms > best) return ms;
+    return best;
+  }
+  function lastInteractionMs(party) {
+    var p = party && typeof party === "object" ? party : {};
+    var best = NaN;
+    var lm = p.last_message;
+    if (lm && typeof lm === "object") {
+      best = considerStamp(best, lm.ts);
+      best = considerStamp(best, lm.timestamp);
+      best = considerStamp(best, lm.time);
+    } else best = considerStamp(best, lm);
+    best = considerStamp(best, p.last_interaction_at);
+    best = considerStamp(best, p.last_inbound_at);
+    best = considerStamp(best, p.last_outbound_at);
+    var turns = Array.isArray(p.turns) ? p.turns : (Array.isArray(p.messages) ? p.messages : null);
+    if (turns) {
+      for (var i = 0; i < turns.length; i++) {
+        var t = turns[i];
+        if (t && typeof t === "object") {
+          best = considerStamp(best, t.ts);
+          best = considerStamp(best, t.timestamp);
+          best = considerStamp(best, t.time);
+        } else best = considerStamp(best, t);
+      }
+    }
+    if (!isNaN(best)) return best;
+    best = considerStamp(best, p.first_seen);
+    return considerStamp(best, p.created_at);
+  }
+  function hasCount(value) {
+    if (value == null || value === "") return false;
+    var n = Number(value);
+    return isFinite(n);
+  }
+  function partyTurnCount(party) {
+    var p = party && typeof party === "object" ? party : {};
+    if (hasCount(p.turn_count)) return Number(p.turn_count);
+    if (hasCount(p.message_count)) return Number(p.message_count);
+    if (Array.isArray(p.turns)) return p.turns.length;
+    if (Array.isArray(p.messages)) return p.messages.length;
+    return 0;
+  }
+  function compareId(a, b) {
+    var x = String(a && a.id || ""), y = String(b && b.id || "");
+    if (x === y) return 0;
+    return x < y ? -1 : 1;
+  }
+  function compareLatest(a, b) {
+    var x = lastInteractionMs(a), y = lastInteractionMs(b);
+    var xOk = !isNaN(x), yOk = !isNaN(y);
+    if (xOk && yOk && x !== y) return y - x;
+    if (xOk !== yOk) return xOk ? -1 : 1;
+    return compareId(a, b);
+  }
+  function compareFrequency(a, b) {
+    var x = partyTurnCount(a), y = partyTurnCount(b);
+    if (x !== y) return y - x;
+    return compareLatest(a, b);
+  }
+  function sortParties(items, mode) {
+    var list = (Array.isArray(items) ? items : []).slice();
+    list.sort(normalizeSort(mode) === SORT_FREQUENCY ? compareFrequency : compareLatest);
+    return list;
+  }
   function turnText(turn) {
     if (turn.text_missing || !String(turn.text || "").trim()) {
       var note = safeText(turn.missing_note || "").trim();
@@ -131,7 +231,16 @@
       if (!line) return;
       line.textContent = state.snapshotAt ? "数据更新于 " + displayTime(state.snapshotAt) : (state.offline ? "" : "尚未收到数据");
     }
+    function browserStorage() {
+      try { return root.localStorage; } catch (e) { return null; }
+    }
+    function currentSort() {
+      var node = el("crm-sort");
+      if (node) return normalizeSort(node.value);
+      return readStoredSort(browserStorage());
+    }
     function renderList() {
+      state.items = sortParties(state.items, currentSort());
       var list = el("crm-list");
       var count = el("crm-count");
       if (!list) return;
@@ -353,6 +462,17 @@
     ["crm-party", "crm-channel", "crm-stage", "crm-unanswered"].forEach(function (id) {
       var n = el(id); if (n) n.addEventListener("change", function () { state.selected = null; loadList(); });
     });
+    var sortNode = el("crm-sort");
+    if (sortNode) {
+      var storedSort = readStoredSort(browserStorage());
+      var knownSort = false;
+      Array.prototype.forEach.call(sortNode.options || [], function (o) { if (o.value === storedSort) knownSort = true; });
+      if (knownSort) sortNode.value = storedSort;
+      sortNode.addEventListener("change", function () {
+        writeStoredSort(browserStorage(), sortNode.value);
+        renderList();
+      });
+    }
     root.addEventListener("hashchange", function () { if (location.hash === "#crm") loadList(); });
     if (location.hash === "#crm") loadList();
   }
@@ -383,5 +503,8 @@
 
   return {mount: mount, maskPhone: maskPhone, safeText: safeText, displayTime: displayTime, statusLabel: statusLabel,
           channelLabel: channelLabel, stageLabel: stageLabel, listQuery: listQuery, detailPath: detailPath,
-          sortTurns: sortTurns, turnText: turnText, fixtureResponse: fixtureResponse, STATUS: STATUS};
+          sortTurns: sortTurns, sortParties: sortParties, partyTurnCount: partyTurnCount,
+          lastInteractionMs: lastInteractionMs, normalizeSort: normalizeSort, readStoredSort: readStoredSort,
+          writeStoredSort: writeStoredSort, SORT_LATEST: SORT_LATEST, SORT_FREQUENCY: SORT_FREQUENCY,
+          SORT_STORAGE_KEY: SORT_STORAGE_KEY, turnText: turnText, fixtureResponse: fixtureResponse, STATUS: STATUS};
 });
