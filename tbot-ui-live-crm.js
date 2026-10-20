@@ -5,11 +5,15 @@
   if (typeof document !== "undefined") api.mount();
 })(typeof globalThis !== "undefined" ? globalThis : this, function (root) {
   "use strict";
-  // 客户画像: read-only buyer / supplier profiles with full cross-channel history.
+  // 客户画像: buyer / supplier profiles with full cross-channel history.
   // Data: box CRM snapshot (already masked on the box) served by the Worker behind
-  // the same hzt_ui_session login as Clients.  Nothing here writes anything.
+  // the same hzt_ui_session login as Clients.  The only write is
+  // POST /api/ui/crm/commands (compose a draft, or approve one drafted turn).
   var API = "https://api.hongzhtaichina.com";
   var LIST_PATH = "/api/ui/crm/buyers";
+  var COMMANDS_PATH = "/api/ui/crm/commands";
+  var COMPOSE_PLACEHOLDER = "写草稿（中文即可），Gbot 会润色翻译后发送";
+  var APPROVE_LABEL = "草稿 · 同意发布";
   var OFFLINE_TEXT = "暂无数据 / 后端未上线";
   var EMPTY_TEXT = "暂无客户画像";
   var ID_RE = /^b_[0-9a-z]{4,40}$/;
@@ -185,9 +189,81 @@
     }
     return safeText(turn.text);
   }
+  // Chinese gloss under a bubble. Hidden when missing, blank, or the same as the original.
+  function translationText(turn) {
+    if (!turn || turn.text_zh == null) return "";
+    var zh = String(turn.text_zh);
+    if (!zh.trim()) return "";
+    var original = turn.text == null ? "" : String(turn.text);
+    if (zh.trim() === original.trim()) return "";
+    return safeText(zh);
+  }
+  function commandOutcome(command) {
+    var status = String(command && command.status || "").trim().toLowerCase();
+    var sent = status === "sent" || status === "delivered" || status === "completed" || status === "done" || status === "已发送";
+    var failed = status === "failed" || status === "error" || status === "rejected" || status === "cancelled" || status === "canceled" || status === "失败";
+    var note = failed ? safeText(command && command.note || "").trim() : "";
+    return {label: failed ? "失败" : (sent ? "已发送" : "已提交"), note: note, pending: !sent && !failed, failed: failed, sent: sent};
+  }
+  function commandStatusText(command) {
+    var outcome = commandOutcome(command || {});
+    return outcome.failed && outcome.note ? outcome.label + "：" + outcome.note : outcome.label;
+  }
+  function commandsFrom(data) {
+    if (!data || typeof data !== "object") return [];
+    if (Array.isArray(data.commands)) return data.commands;
+    if (data.party && Array.isArray(data.party.commands)) return data.party.commands;
+    return [];
+  }
+  function latestCommand(commands, type, turnId) {
+    var best = null;
+    (Array.isArray(commands) ? commands : []).forEach(function (command) {
+      if (!command || command.type !== type) return;
+      if (turnId != null && String(command.turn_id) !== String(turnId)) return;
+      if (!best) { best = command; return; }
+      var next = String(command.created_at || ""), prev = String(best.created_at || "");
+      if (next > prev || (next === prev && String(command.id) > String(best.id))) best = command;
+    });
+    return best;
+  }
+  function errorNote(error) {
+    if (!error) return "";
+    return String(error.note || error.message || "");
+  }
+  function postCommand(body) {
+    var fixture = root.__TBOT_CRM_FIXTURE__;
+    if (fixture && typeof fixture === "object") {
+      if (fixture.commandsHttp === 404) return Promise.reject(Object.assign(new Error("not_found"), {code: "commands_missing", status: 404}));
+      if (typeof fixture.postCommand === "function") return Promise.resolve().then(function () { return fixture.postCommand(body); });
+      return Promise.resolve({ok: true, id: "cmd_fixture"});
+    }
+    var controller = root.AbortController ? new AbortController() : null;
+    var timer = controller ? root.setTimeout(function () { controller.abort(); }, 15000) : 0;
+    return fetch(API + COMMANDS_PATH, {
+      method: "POST", credentials: "include", cache: "no-store",
+      headers: {"Accept": "application/json", "Content-Type": "application/json"},
+      body: JSON.stringify(body), signal: controller ? controller.signal : undefined
+    }).then(function (response) {
+      return response.json().catch(function () { return null; }).then(function (data) {
+        if (response.status === 401) {
+          location.replace("./tbot-login.html");
+          throw Object.assign(new Error("unauthorized"), {code: "unauthorized"});
+        }
+        if (response.status === 404) throw Object.assign(new Error("not_found"), {code: "commands_missing", status: 404});
+        if (!response.ok || !data || data.ok === false || data.id == null || data.id === "") {
+          throw Object.assign(new Error((data && (data.note || data.error)) || "request_failed"),
+            {code: "failed", note: (data && (data.note || data.error)) || ""});
+        }
+        return data;
+      });
+    }).then(function (data) { if (timer) root.clearTimeout(timer); return data; },
+            function (error) { if (timer) root.clearTimeout(timer); throw error; });
+  }
 
   function mount() {
-    var state = {items: [], selected: null, offline: false, loading: false, snapshotAt: null, facets: null, timer: 0};
+    var state = {items: [], selected: null, offline: false, loading: false, snapshotAt: null, facets: null, timer: 0,
+      party: null, commandsAvailable: true, commands: [], localCommands: [], serverCommands: [], approving: {},
+      approveButtons: {}, composing: false, composeNote: "", poll: 0};
     function el(id) { return document.getElementById(id); }
     function setMessage(message, error) {
       var feedback = el("module-feedback");
@@ -290,11 +366,169 @@
       var detail = document.createElement("dd"); detail.textContent = Array.isArray(value) ? value.join("、") : String(value);
       row.appendChild(term); row.appendChild(detail); list.appendChild(row);
     }
+    function setComposerVisible(on) {
+      var node = el("crm-composer");
+      if (node) node.hidden = !on;
+    }
+    function partyCommands() {
+      var id = state.selected;
+      return (state.commands || []).filter(function (command) {
+        if (!command) return false;
+        return !command.party_id || command.party_id === id;
+      });
+    }
+    function mergeCommands(serverList) {
+      state.serverCommands = Array.isArray(serverList) ? serverList : [];
+      var byId = {};
+      (state.localCommands || []).forEach(function (command) {
+        if (command && command.id != null) byId[String(command.id)] = command;
+      });
+      state.serverCommands.forEach(function (command) {
+        if (!command || command.id == null) return;
+        var copy = Object.assign({}, command);
+        if (!copy.party_id) copy.party_id = state.selected;
+        byId[String(copy.id)] = Object.assign({}, byId[String(copy.id)] || {}, copy);
+      });
+      state.commands = Object.keys(byId).map(function (key) { return byId[key]; });
+    }
+    function rememberCommand(command) {
+      state.localCommands = (state.localCommands || []).filter(function (item) { return String(item.id) !== String(command.id); });
+      state.localCommands.push(command);
+      mergeCommands(state.serverCommands || []);
+    }
+    function renderComposeStatus() {
+      var node = el("crm-compose-status");
+      if (!node) return;
+      var command = state.composeNote ? null : latestCommand(partyCommands(), "compose", null);
+      var text = state.composeNote || (command ? commandStatusText(command) : "");
+      var failed = state.composeNote ? true : Boolean(command && commandOutcome(command).failed);
+      node.textContent = text;
+      node.className = "crm-compose-status" + (failed && text ? " is-error" : "");
+    }
+    function applyLiveCommands() {
+      renderComposeStatus();
+      var buttons = state.approveButtons || {};
+      Object.keys(buttons).forEach(function (turnId) {
+        var button = buttons[turnId];
+        var command = latestCommand(partyCommands(), "approve_draft", turnId);
+        if (!button || !command) return;
+        button.disabled = true;
+        button.textContent = commandStatusText(command);
+      });
+    }
+    function hasPending() {
+      return partyCommands().some(function (command) { return commandOutcome(command).pending; });
+    }
+    function stopPoll() {
+      if (state.poll) root.clearInterval(state.poll);
+      state.poll = 0;
+      root.__TBOT_CRM_POLL__ = 0;
+    }
+    function schedulePoll() {
+      stopPoll();
+      if (!hasPending() || state.commandsAvailable === false || !state.selected) return;
+      var id = state.selected;
+      state.poll = root.setInterval(function () {
+        if (!moduleActive() || state.selected !== id) { stopPoll(); return; }
+        refreshCommands(id);
+      }, 4000);
+      if (state.poll && state.poll.unref) state.poll.unref();
+      root.__TBOT_CRM_POLL__ = state.poll;
+    }
+    function refreshCommands(id) {
+      if (!id || state.selected !== id) return Promise.resolve();
+      return request(detailPath(id)).then(function (data) {
+        if (state.selected !== id || !data) return;
+        var prev = JSON.stringify((state.party && state.party.turns) || []);
+        var next = JSON.stringify((data.party && data.party.turns) || []);
+        if (data.party) state.party = data.party;
+        mergeCommands(commandsFrom(data));
+        if (data.party && prev !== next) renderDetail(data.party);
+        else applyLiveCommands();
+        if (hasPending()) { if (!state.poll) schedulePoll(); }
+        else stopPoll();
+      }).catch(function (error) {
+        if (error && error.code === "unauthorized") return;
+      });
+    }
+    function markCommandsMissing() {
+      state.commandsAvailable = false;
+      state.composing = false;
+      state.composeNote = "";
+      stopPoll();
+      if (state.party && state.selected) renderDetail(state.party);
+      else setComposerVisible(false);
+    }
+    function submitCompose() {
+      var box = el("crm-compose-text");
+      var button = el("crm-compose-send");
+      if (!box || !button || state.commandsAvailable === false || !state.selected || state.composing) return;
+      var text = String(box.value || "").trim();
+      if (!text) return;
+      var partyId = state.selected;
+      state.composing = true;
+      button.disabled = true;
+      postCommand({type: "compose", party_id: partyId, text: text}).then(function (data) {
+        var commandId = data && data.id;
+        if (commandId == null || commandId === "") throw Object.assign(new Error("missing_id"), {code: "failed", note: "missing_id"});
+        if (state.selected === partyId) box.value = "";
+        state.composeNote = "";
+        rememberCommand({id: commandId, type: "compose", party_id: partyId, turn_id: null, status: "submitted",
+          created_at: new Date().toISOString(), note: ""});
+        renderComposeStatus();
+        return refreshCommands(partyId);
+      }).catch(function (error) {
+        if (error && error.code === "unauthorized") return;
+        if (error && (error.code === "commands_missing" || error.status === 404)) { markCommandsMissing(); return; }
+        state.composeNote = commandStatusText({status: "failed", note: errorNote(error)});
+        renderComposeStatus();
+      }).then(function () {
+        state.composing = false;
+        var send = el("crm-compose-send");
+        if (send) send.disabled = false;
+      });
+    }
+    function approvalLocked(turnId) {
+      if (state.approving[String(turnId)]) return true;
+      return Boolean(latestCommand(partyCommands(), "approve_draft", turnId));
+    }
+    function approveTurn(turn) {
+      var turnId = turn && turn.id;
+      if (turnId == null || state.commandsAvailable === false || !state.selected) return;
+      if (approvalLocked(turnId)) return;
+      var agreed = false;
+      try { agreed = Boolean(root.confirm && root.confirm("同意发布这条草稿？")); }
+      catch (e) { agreed = false; }
+      if (!agreed) return;
+      if (approvalLocked(turnId)) return;
+      var partyId = state.selected;
+      state.approving[String(turnId)] = true;
+      var button = state.approveButtons[String(turnId)];
+      if (button) { button.disabled = true; button.textContent = "已提交"; }
+      postCommand({type: "approve_draft", party_id: partyId, turn_id: turnId}).then(function (data) {
+        var commandId = data && data.id;
+        if (commandId == null || commandId === "") throw Object.assign(new Error("missing_id"), {code: "failed", note: "missing_id"});
+        rememberCommand({id: commandId, type: "approve_draft", party_id: partyId, turn_id: turnId, status: "submitted",
+          created_at: new Date().toISOString(), note: ""});
+        applyLiveCommands();
+        return refreshCommands(partyId);
+      }).catch(function (error) {
+        if (error && error.code === "unauthorized") return;
+        if (error && (error.code === "commands_missing" || error.status === 404)) { markCommandsMissing(); return; }
+        delete state.approving[String(turnId)];
+        var current = state.approveButtons[String(turnId)];
+        if (current) {
+          current.disabled = false;
+          current.textContent = commandStatusText({status: "failed", note: errorNote(error)});
+        }
+      });
+    }
     function renderEmptyDetail(text) {
       ["crm-facts", "crm-identities"].forEach(function (id) { var n = el(id); if (n) n.innerHTML = ""; });
       var title = el("crm-selected-title"); if (title) title.textContent = "选择一位客户";
       var badges = el("crm-selected-badges"); if (badges) badges.innerHTML = "";
       placeholder(el("crm-chat"), text);
+      setComposerVisible(false);
     }
     function renderDetail(p) {
       var title = el("crm-selected-title");
@@ -353,6 +587,7 @@
       var chat = el("crm-chat");
       if (!chat) return;
       chat.innerHTML = "";
+      state.approveButtons = {};
       var turns = sortTurns(p.turns);
       turns.forEach(function (t) {
         var item = document.createElement("article");
@@ -363,7 +598,22 @@
         meta.className = "client-message-meta";
         meta.textContent = [DIRECTIONS[t.direction] || "", channelLabel(t.channel), displayTime(t.ts)].filter(Boolean).join(" · ");
         if (st) {
-          var tag = document.createElement("span"); tag.className = "crm-status crm-status-tag-" + statusClass(t.status); tag.textContent = st;
+          var canApprove = state.commandsAvailable !== false && t.direction === "out" && t.status === "drafted" && t.id != null;
+          var tag = document.createElement(canApprove ? "button" : "span");
+          tag.className = "crm-status crm-status-tag-" + statusClass(t.status) + (canApprove ? " crm-approve" : "");
+          if (canApprove) {
+            tag.type = "button";
+            tag.setAttribute("data-turn-id", String(t.id));
+            var existing = latestCommand(partyCommands(), "approve_draft", t.id);
+            if (existing || state.approving[String(t.id)]) {
+              tag.disabled = true;
+              tag.textContent = existing ? commandStatusText(existing) : "已提交";
+            } else {
+              tag.textContent = APPROVE_LABEL;
+              tag.addEventListener("click", function () { approveTurn(t); });
+            }
+            state.approveButtons[String(t.id)] = tag;
+          } else tag.textContent = st;
           meta.appendChild(document.createTextNode(" "));
           meta.appendChild(tag);
         }
@@ -371,10 +621,21 @@
         body.className = "client-message-text";
         body.textContent = turnText(t);
         item.appendChild(meta); item.appendChild(body);
+        var zh = translationText(t);
+        if (zh) {
+          var gloss = document.createElement("div");
+          gloss.className = "crm-text-zh";
+          gloss.textContent = zh;
+          item.appendChild(gloss);
+        }
         chat.appendChild(item);
       });
       if (!turns.length) placeholder(chat, "还没有对话记录。");
       else chat.scrollTop = chat.scrollHeight;
+      setComposerVisible(state.commandsAvailable !== false);
+      var send = el("crm-compose-send");
+      if (send) send.disabled = Boolean(state.composing);
+      renderComposeStatus();
     }
     function request(path) {
       var fixture = root.__TBOT_CRM_FIXTURE__;
@@ -436,17 +697,27 @@
     }
     function selectParty(id) {
       if (!ID_RE.test(String(id || ""))) return;
+      var changed = state.selected !== id;
       state.selected = id;
       renderList();
       setMessage("正在加载对话…");
       request(detailPath(id)).then(function (data) {
         if (state.selected !== id) return;
         if (!data || !data.party) throw Object.assign(new Error("missing"), {code: "missing"});
+        if (changed) {
+          state.composeNote = "";
+          var box = el("crm-compose-text");
+          if (box) box.value = "";
+        }
+        state.party = data.party;
+        mergeCommands(commandsFrom(data));
         renderDetail(data.party);
         setMessage("");
+        if (hasPending()) schedulePoll(); else stopPoll();
       }).catch(function (error) {
         if (error && error.code === "unauthorized") return;
         if (state.selected !== id) return;
+        state.party = null;
         renderEmptyDetail(error && error.code === "missing" ? "没有这位客户的记录。" : "对话暂时无法加载。");
         setMessage(error && error.code === "missing" ? "" : "对话暂时无法加载。", !(error && error.code === "missing"));
       });
@@ -462,6 +733,10 @@
     ["crm-party", "crm-channel", "crm-stage", "crm-unanswered"].forEach(function (id) {
       var n = el(id); if (n) n.addEventListener("change", function () { state.selected = null; loadList(); });
     });
+    var composeBox = el("crm-compose-text");
+    if (composeBox) composeBox.placeholder = COMPOSE_PLACEHOLDER;
+    var sendButton = el("crm-compose-send");
+    if (sendButton) sendButton.addEventListener("click", submitCompose);
     var sortNode = el("crm-sort");
     if (sortNode) {
       var storedSort = readStoredSort(browserStorage());
@@ -498,7 +773,10 @@
     var found = null;
     parties.forEach(function (p) { if (p && p.id === id) found = p; });
     if (!found) throw Object.assign(new Error("missing"), {code: "missing"});
-    return {ok: true, party: found};
+    var commands;
+    if (fixture.commandsByParty && Object.prototype.hasOwnProperty.call(fixture.commandsByParty, id)) commands = fixture.commandsByParty[id];
+    else commands = found.commands;
+    return {ok: true, party: found, commands: Array.isArray(commands) ? commands : []};
   }
 
   return {mount: mount, maskPhone: maskPhone, safeText: safeText, displayTime: displayTime, statusLabel: statusLabel,
@@ -506,5 +784,9 @@
           sortTurns: sortTurns, sortParties: sortParties, partyTurnCount: partyTurnCount,
           lastInteractionMs: lastInteractionMs, normalizeSort: normalizeSort, readStoredSort: readStoredSort,
           writeStoredSort: writeStoredSort, SORT_LATEST: SORT_LATEST, SORT_FREQUENCY: SORT_FREQUENCY,
-          SORT_STORAGE_KEY: SORT_STORAGE_KEY, turnText: turnText, fixtureResponse: fixtureResponse, STATUS: STATUS};
+          SORT_STORAGE_KEY: SORT_STORAGE_KEY, turnText: turnText, translationText: translationText,
+          commandOutcome: commandOutcome, commandStatusText: commandStatusText, commandsFrom: commandsFrom,
+          latestCommand: latestCommand, postCommand: postCommand, COMMANDS_PATH: COMMANDS_PATH,
+          COMPOSE_PLACEHOLDER: COMPOSE_PLACEHOLDER, APPROVE_LABEL: APPROVE_LABEL,
+          fixtureResponse: fixtureResponse, STATUS: STATUS};
 });
