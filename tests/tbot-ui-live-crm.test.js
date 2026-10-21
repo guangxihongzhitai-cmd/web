@@ -486,8 +486,23 @@ test("立即同步: busy while pending/syncing, then last sync time; timeout and
   assert.equal(crm.syncView(null).text, "尚未手动同步");
 });
 
+test("立即同步: a run stuck for over 90 min shows as timed out and the button is released", () => {
+  const old = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+  let v = crm.syncView({state: "syncing", requested_at: old, started_at: old});
+  assert.equal(v.label, "立即同步"); assert.equal(v.busy, false); assert.match(v.text, /^同步超时/);
+  const fresh = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  v = crm.syncView({state: "syncing", requested_at: fresh, started_at: fresh});
+  assert.equal(v.busy, true);
+});
+
+test("立即同步: a failed status read releases the button and keeps polling", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "tbot-ui-live-crm.js"), "utf8");
+  assert.ok(src.includes("function syncReadFailed()"));
+  assert.ok(/syncReadFailed\(\);/.test(src));
+});
+
 test("html: 刷新 unchanged, 立即同步 sits right after it, cache-bust bumped", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "tbot-ui.html"), "utf8");
   assert.ok(html.includes('data-action="crm-refresh">刷新</button><button class="module-action" type="button" id="crm-sync-now" data-action="crm-sync">立即同步</button>'));
-  assert.ok(html.includes("tbot-ui-live-crm.js?v=20261021-sync1"));
+  assert.ok(html.includes("tbot-ui-live-crm.js?v=20261021-sync2"));
 });

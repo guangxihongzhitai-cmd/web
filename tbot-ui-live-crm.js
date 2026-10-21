@@ -234,11 +234,17 @@
   var SYNC_PATH = "/api/ui/crm/sync";
   var SYNC_LABEL = "立即同步";
   var SYNC_BUSY_LABEL = "同步中…";
+  var SYNC_STALE_MS = 90 * 60 * 1000;
   function syncView(sync, httpError) {
     var s = sync && typeof sync === "object" ? sync : {};
     var state = String(s.state || "idle");
     var last = s.last_sync_at ? "上次同步：" + displayTime(s.last_sync_at) : "尚未手动同步";
-    if (state === "pending" || state === "syncing") return {label: SYNC_BUSY_LABEL, disabled: true, busy: true, text: last};
+    if (state === "pending" || state === "syncing") {
+      // Never show 同步中 forever: a run with no result for 90 min is shown as timed out.
+      var since = Date.parse(s.started_at || s.requested_at || "");
+      if (!(isFinite(since) && Date.now() - since > SYNC_STALE_MS)) return {label: SYNC_BUSY_LABEL, disabled: true, busy: true, text: last};
+      state = "timed_out";
+    }
     var wait = Number(s.next_allowed_in_s || 0);
     var text = last;
     if (state === "timed_out") text = "同步超时 · " + last;
@@ -820,18 +826,31 @@
       if (syncState.wasBusy && !v.busy) root.setTimeout(loadList, 0);   // sync finished: re-read the snapshot
       syncState.wasBusy = v.busy;
     }
+    function syncReadFailed() {
+      // Status could not be read: release the button and keep polling instead of freezing on 同步中.
+      var b = ensureSyncButton();
+      if (b) { b.textContent = SYNC_LABEL; b.disabled = false; b.setAttribute("aria-busy", "false"); }
+      var note = el("crm-sync-status");
+      if (note) note.textContent = "同步状态暂时读取失败，稍后自动重试。";
+      root.clearTimeout(syncState.timer);
+      syncState.timer = root.setTimeout(loadSync, 60000);
+    }
     function loadSync() {
-      if (!moduleActive()) return;
+      if (!moduleActive()) {
+        if (syncState.wasBusy) { root.clearTimeout(syncState.timer); syncState.timer = root.setTimeout(loadSync, 30000); }
+        return;
+      }
       syncRequest("GET").then(function (r) { renderSync(r.sync); }, function (error) {
-        if (error && error.code === "offline") { var b = el("crm-sync-now"); if (b) b.hidden = true; }
+        if (error && error.code === "offline") { var b = el("crm-sync-now"); if (b) b.hidden = true; return; }
+        syncReadFailed();
       });
     }
     function startSync() {
       var btn = ensureSyncButton();
       if (btn) { btn.disabled = true; btn.textContent = SYNC_BUSY_LABEL; }
       syncRequest("POST").then(function (r) { renderSync(r.sync, r.status); }, function (error) {
-        if (error && error.code === "unauthorized") return;
         if (btn) { btn.disabled = false; btn.textContent = SYNC_LABEL; }
+        if (error && error.code === "unauthorized") return;
         var note = el("crm-sync-status"); if (note) note.textContent = "同步请求未发出，请稍后再试。";
       });
     }
