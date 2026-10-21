@@ -230,6 +230,51 @@
     if (!error) return "";
     return String(error.note || error.message || "");
   }
+  // 立即同步: separate from 刷新 (which only re-reads the snapshot).
+  var SYNC_PATH = "/api/ui/crm/sync";
+  var SYNC_LABEL = "立即同步";
+  var SYNC_BUSY_LABEL = "同步中…";
+  function syncView(sync, httpError) {
+    var s = sync && typeof sync === "object" ? sync : {};
+    var state = String(s.state || "idle");
+    var last = s.last_sync_at ? "上次同步：" + displayTime(s.last_sync_at) : "尚未手动同步";
+    if (state === "pending" || state === "syncing") return {label: SYNC_BUSY_LABEL, disabled: true, busy: true, text: last};
+    var wait = Number(s.next_allowed_in_s || 0);
+    var text = last;
+    if (state === "timed_out") text = "同步超时 · " + last;
+    else if (state === "failed") text = "同步失败 · " + last;
+    if (httpError === 429 || wait > 0) {
+      var mins = Math.max(1, Math.ceil(wait / 60));
+      return {label: SYNC_LABEL, disabled: wait > 0, busy: false, text: text + " · 10 分钟内只能同步一次（约 " + mins + " 分钟后可再试）"};
+    }
+    return {label: SYNC_LABEL, disabled: false, busy: false, text: text};
+  }
+  function syncRequest(method) {
+    var fixture = root.__TBOT_CRM_FIXTURE__;
+    if (fixture && typeof fixture === "object") {
+      if (typeof fixture.sync === "function") return Promise.resolve().then(function () { return fixture.sync(method); });
+      return Promise.reject(Object.assign(new Error("offline"), {code: "offline"}));
+    }
+    var controller = root.AbortController ? new AbortController() : null;
+    var timer = controller ? root.setTimeout(function () { controller.abort(); }, 15000) : 0;
+    return fetch(API + SYNC_PATH, {method: method, credentials: "include", cache: "no-store",
+                                   headers: {"Accept": "application/json"},
+                                   signal: controller ? controller.signal : undefined}).then(function (response) {
+      return response.json().catch(function () { return null; }).then(function (data) {
+        if (response.status === 401) {
+          location.replace("./tbot-login.html");
+          throw Object.assign(new Error("unauthorized"), {code: "unauthorized"});
+        }
+        if (response.status === 404) throw Object.assign(new Error("offline"), {code: "offline"});
+        // 409 (already running) and 429 (rate limit) still carry the current record.
+        if (data && data.sync && (response.ok || response.status === 409 || response.status === 429))
+          return {status: response.status, sync: data.sync};
+        throw Object.assign(new Error((data && data.error) || "request_failed"), {code: "failed"});
+      });
+    }).then(function (data) { if (timer) root.clearTimeout(timer); return data; },
+            function (error) { if (timer) root.clearTimeout(timer); throw error; });
+  }
+
   function postCommand(body) {
     var fixture = root.__TBOT_CRM_FIXTURE__;
     if (fixture && typeof fixture === "object") {
@@ -748,6 +793,57 @@
         renderList();
       });
     }
+    var syncState = {timer: 0, busy: false, wasBusy: false};
+    function ensureSyncButton() {
+      var btn = el("crm-sync-now");
+      if (btn) return btn;
+      var refreshBtn = document.querySelector && document.querySelector('[data-action="crm-refresh"]');
+      if (!refreshBtn || !refreshBtn.parentNode) return null;
+      btn = document.createElement("button");
+      btn.className = "module-action"; btn.type = "button"; btn.id = "crm-sync-now";
+      btn.setAttribute("data-action", "crm-sync"); btn.textContent = SYNC_LABEL;
+      refreshBtn.parentNode.insertBefore(btn, refreshBtn.nextSibling);
+      var note = document.createElement("span");
+      note.id = "crm-sync-status"; note.className = "crm-sync-status";
+      btn.parentNode.insertBefore(note, btn.nextSibling);
+      return btn;
+    }
+    function renderSync(sync, httpError) {
+      var btn = ensureSyncButton();
+      var v = syncView(sync, httpError);
+      if (btn) { btn.textContent = v.label; btn.disabled = v.disabled; btn.setAttribute("aria-busy", v.busy ? "true" : "false"); }
+      var note = el("crm-sync-status");
+      if (note) note.textContent = v.text;
+      root.clearTimeout(syncState.timer);
+      if (v.busy) syncState.timer = root.setTimeout(loadSync, 30000);
+      else if (v.disabled) syncState.timer = root.setTimeout(loadSync, 60000);
+      if (syncState.wasBusy && !v.busy) root.setTimeout(loadList, 0);   // sync finished: re-read the snapshot
+      syncState.wasBusy = v.busy;
+    }
+    function loadSync() {
+      if (!moduleActive()) return;
+      syncRequest("GET").then(function (r) { renderSync(r.sync); }, function (error) {
+        if (error && error.code === "offline") { var b = el("crm-sync-now"); if (b) b.hidden = true; }
+      });
+    }
+    function startSync() {
+      var btn = ensureSyncButton();
+      if (btn) { btn.disabled = true; btn.textContent = SYNC_BUSY_LABEL; }
+      syncRequest("POST").then(function (r) { renderSync(r.sync, r.status); }, function (error) {
+        if (error && error.code === "unauthorized") return;
+        if (btn) { btn.disabled = false; btn.textContent = SYNC_LABEL; }
+        var note = el("crm-sync-status"); if (note) note.textContent = "同步请求未发出，请稍后再试。";
+      });
+    }
+    ensureSyncButton();
+    document.addEventListener("click", function (event) {
+      var s = event.target.closest && event.target.closest('[data-action="crm-sync"]');
+      if (s && !s.disabled) startSync();
+      var link = event.target.closest && event.target.closest('.side-link[data-module="crm"]');
+      if (link) root.setTimeout(loadSync, 0);
+    });
+    root.addEventListener("hashchange", function () { if (location.hash === "#crm") loadSync(); });
+    if (location.hash === "#crm") loadSync();
     root.addEventListener("hashchange", function () { if (location.hash === "#crm") loadList(); });
     if (location.hash === "#crm") loadList();
   }
@@ -788,5 +884,7 @@
           commandOutcome: commandOutcome, commandStatusText: commandStatusText, commandsFrom: commandsFrom,
           latestCommand: latestCommand, postCommand: postCommand, COMMANDS_PATH: COMMANDS_PATH,
           COMPOSE_PLACEHOLDER: COMPOSE_PLACEHOLDER, APPROVE_LABEL: APPROVE_LABEL,
-          fixtureResponse: fixtureResponse, STATUS: STATUS};
+          fixtureResponse: fixtureResponse, STATUS: STATUS,
+          syncView: syncView, syncRequest: syncRequest, SYNC_PATH: SYNC_PATH, SYNC_LABEL: SYNC_LABEL,
+          SYNC_BUSY_LABEL: SYNC_BUSY_LABEL};
 });

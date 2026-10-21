@@ -469,3 +469,25 @@ test("composer posts a draft, approve publishes once, and a 404 hides both", asy
     if (prev.fetch === undefined) delete global.fetch; else global.fetch = prev.fetch;
   }
 });
+
+test("立即同步: busy while pending/syncing, then last sync time; timeout and rate limit", () => {
+  assert.equal(crm.SYNC_LABEL, "立即同步");
+  for (const st of ["pending", "syncing"]) {
+    const v = crm.syncView({state: st});
+    assert.equal(v.label, "同步中…"); assert.equal(v.disabled, true);
+  }
+  let v = crm.syncView({state: "done", last_sync_at: "2026-10-21T05:00:00Z", next_allowed_in_s: 0});
+  assert.equal(v.label, "立即同步"); assert.equal(v.disabled, false);
+  assert.equal(v.text, "上次同步：2026-10-21 12:00（UTC+7）");
+  v = crm.syncView({state: "timed_out", last_sync_at: "2026-10-21T05:00:00Z"});
+  assert.match(v.text, /^同步超时 · 上次同步：2026-10-21 12:00/);
+  v = crm.syncView({state: "done", last_sync_at: "2026-10-21T05:00:00Z", next_allowed_in_s: 250}, 429);
+  assert.equal(v.disabled, true); assert.match(v.text, /约 5 分钟后可再试/);
+  assert.equal(crm.syncView(null).text, "尚未手动同步");
+});
+
+test("html: 刷新 unchanged, 立即同步 sits right after it, cache-bust bumped", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "tbot-ui.html"), "utf8");
+  assert.ok(html.includes('data-action="crm-refresh">刷新</button><button class="module-action" type="button" id="crm-sync-now" data-action="crm-sync">立即同步</button>'));
+  assert.ok(html.includes("tbot-ui-live-crm.js?v=20261021-sync1"));
+});
