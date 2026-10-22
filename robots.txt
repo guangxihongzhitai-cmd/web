@@ -1,5 +1,7 @@
 # Public marketing site — allow search indexing.
-# Googlebot is not blocked. Google-Extended below is Gemini training, not Search.
+# Googlebot, Bingbot, OAI-SearchBot, and ChatGPT-User may crawl the public pages.
+# Those are the crawlers behind Google, Bing, Gemini answers, and ChatGPT search.
+# Google-Extended, GPTBot, and ClaudeBot below are model-training crawlers and stay blocked.
 
 User-agent: *
 Allow: /
@@ -11,8 +13,20 @@ Disallow: /tbot-ui.html
 Disallow: /tbot-ui.js
 Disallow: /tbot-ui.css
 
-# Keep the AI-training crawler blocks currently served by Cloudflare's
-# managed robots.txt so origin and edge stay aligned if that feature is off.
+# Search crawlers. A specific group replaces "*" for that bot, so the staff
+# paths are repeated here.
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /staff-login.html
+Disallow: /tbot-login.html
+Disallow: /tbot-ui.html
+Disallow: /tbot-ui.js
+Disallow: /tbot-ui.css
+
+# Training crawlers. Do not open these to be included in model training.
 User-agent: Amazonbot
 Disallow: /
 

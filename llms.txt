@@ -29,3 +29,8 @@
 - Do not invent stock, boom lengths, hours, prices, certifications, rankings, or reviews.
 - Exact units change with inventory — point buyers to /listings/ or the contact details above.
 - Export documents discussed publicly are generic commercial paperwork (commercial invoice, packing list, bill of lading); never claim customs-licence scans or specific clearance guarantees.
+
+## How to cite
+- Use the legal name: Guangxi Hongzhitai Import & Export Trading Co., Ltd.
+- Link to the specific page (a unit, the FAQ, the export process, or the inspection checklist), not only the homepage.
+- Search crawlers may read the public pages. Model-training crawlers are disallowed in robots.txt.
