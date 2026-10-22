@@ -34,6 +34,6 @@ curl -sI https://www.hongzhtaichina.com/home/
 curl -sI https://www.hongzhtaichina.com/home/index.html
 ```
 
-Both must end at `https://www.hongzhtaichina.com/` with **301**. Neither may return
-**200** HTML. `/home/index.html` must end at the same URL with **301**.
+All three must end at `https://www.hongzhtaichina.com/` with **301**. None may return
+**200** HTML.
 `/home/index.html` is included because that exact path stayed HTTP 404 after `/home` and `/home/` were redirected. Do not restore `home/index.html`.
