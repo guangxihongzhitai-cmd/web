@@ -12,22 +12,22 @@
   var API = "https://api.hongzhtaichina.com";
   var LIST_PATH = "/api/ui/crm/buyers";
   var COMMANDS_PATH = "/api/ui/crm/commands";
-  var COMPOSE_PLACEHOLDER = "写草稿（中文即可），Gbot 会润色翻译后发送";
-  var APPROVE_LABEL = "草稿 · 同意发布";
-  var OFFLINE_TEXT = "暂无数据 / 后端未上线";
-  var EMPTY_TEXT = "暂无客户画像";
+  var COMPOSE_PLACEHOLDER = "Write a draft (Chinese is fine). Gbot will polish, translate and send it.";
+  var APPROVE_LABEL = "Draft · Approve";
+  var OFFLINE_TEXT = "No data / backend offline";
+  var EMPTY_TEXT = "No customer profiles";
   var ID_RE = /^b_[0-9a-z]{4,40}$/;
   var CHANNELS = {tiktok: "TikTok", facebook: "Facebook", instagram: "Instagram", x: "X", youtube: "YouTube",
-    whatsapp: "WhatsApp", email: "邮件", phone: "电话", web: "网页", website: "网站聊天", wechat: "微信"};
-  var STAGES = {"new": "新客户", engaged: "沟通中", qualified: "需求已确认", quoted: "已报价", negotiating: "议价中",
-    won: "已成交", lost: "已流失", dormant: "沉睡", prospect: "潜在客户"};
-  var PARTIES = {buyer: "客户", supplier: "供应商", internal: "内部"};
-  var KINDS = {buyer: "买家", prospect: "潜在客户", partner: "合作方", supplier: "供应商", internal: "内部", spam: "垃圾信息"};
-  var DIRECTIONS = {"in": "对方", out: "我方", note: "备注"};
-  var STATUS = {drafted: "草稿", blocked: "被拦截", sent: "已发送", unverified: "未确认送达", pending: "待发送",
-    failed: "发送失败", cancelled: "已取消"};
-  var INTEREST = {brand: "品牌", model: "型号", boom_m: "臂长(米)", year: "年份", chassis: "底盘", budget: "预算",
-    currency: "币种", use: "用途", quantity: "数量", destination: "目的地"};
+    whatsapp: "WhatsApp", email: "Email", phone: "Phone", web: "Web", website: "Website chat", wechat: "WeChat"};
+  var STAGES = {"new": "New", engaged: "In conversation", qualified: "Need confirmed", quoted: "Quoted", negotiating: "Negotiating",
+    won: "Won", lost: "Lost", dormant: "Dormant", prospect: "Prospect"};
+  var PARTIES = {buyer: "Customer", supplier: "Supplier", internal: "Internal"};
+  var KINDS = {buyer: "Buyer", prospect: "Prospect", partner: "Partner", supplier: "Supplier", internal: "Internal", spam: "Spam"};
+  var DIRECTIONS = {"in": "Them", out: "Us", note: "Note"};
+  var STATUS = {drafted: "Draft", blocked: "Blocked", sent: "Sent", unverified: "Delivery unconfirmed", pending: "Pending",
+    failed: "Failed", cancelled: "Cancelled"};
+  var INTEREST = {brand: "Brand", model: "Model", boom_m: "Boom (m)", year: "Year", chassis: "Chassis", budget: "Budget",
+    currency: "Currency", use: "Use", quantity: "Quantity", destination: "Destination"};
   // Defence in depth: the box already masks; never let a full private number through.
   var PHONE_RE = /(?<![\w*])\+?\d[\d\s\-().]{6,}\d(?![\w*])/g;
   var DATE_RE = /^\d{4}[-./]\d{1,2}[-./]\d{1,2}/;
@@ -44,7 +44,7 @@
   function safeText(value) {
     var text = value == null ? "" : String(value);
     SECRET_RE.lastIndex = 0; PHONE_RE.lastIndex = 0;
-    return text.replace(SECRET_RE, "[凭证已隐藏]").replace(PHONE_RE, function (m) { return maskPhone(m); });
+    return text.replace(SECRET_RE, "[secret hidden]").replace(PHONE_RE, function (m) { return maskPhone(m); });
   }
   function displayTime(value) {
     var text = String(value || "").trim();
@@ -52,13 +52,13 @@
     var d = new Date(text);
     if (isNaN(d.getTime())) return text.slice(0, 25);
     var local = new Date(d.getTime() + 7 * 3600 * 1000);   // 越南时间 UTC+7
-    return local.toISOString().slice(0, 16).replace("T", " ") + "（UTC+7）";
+    return local.toISOString().slice(0, 16).replace("T", " ") + " (UTC+7)";
   }
-  function channelLabel(c) { return CHANNELS[c] || String(c || "未知渠道"); }
-  function stageLabel(s) { return STAGES[s] || (s ? String(s) : "未设置"); }
+  function channelLabel(c) { return CHANNELS[c] || String(c || "Unknown channel"); }
+  function stageLabel(s) { return STAGES[s] || (s ? String(s) : "Not set"); }
   function statusLabel(turn) {
     if (!turn || turn.direction !== "out") return "";
-    return turn.status_label || STATUS[turn.status] || "";
+    return STATUS[turn.status] || turn.status_label || "";
   }
   function statusClass(status) {
     return {drafted: "draft", blocked: "blocked", failed: "blocked", cancelled: "muted", unverified: "warn", pending: "warn"}[status] || "ok";
@@ -185,7 +185,7 @@
   function turnText(turn) {
     if (turn.text_missing || !String(turn.text || "").trim()) {
       var note = safeText(turn.missing_note || "").trim();
-      return "[无文字内容" + (note ? "：" + note : "") + "]";
+      return "[No text" + (note ? ": " + note : "") + "]";
     }
     return safeText(turn.text);
   }
@@ -203,11 +203,11 @@
     var sent = status === "sent" || status === "delivered" || status === "completed" || status === "done" || status === "已发送";
     var failed = status === "failed" || status === "error" || status === "rejected" || status === "cancelled" || status === "canceled" || status === "失败";
     var note = failed ? safeText(command && command.note || "").trim() : "";
-    return {label: failed ? "失败" : (sent ? "已发送" : "已提交"), note: note, pending: !sent && !failed, failed: failed, sent: sent};
+    return {label: failed ? "Failed" : (sent ? "Sent" : "Submitted"), note: note, pending: !sent && !failed, failed: failed, sent: sent};
   }
   function commandStatusText(command) {
     var outcome = commandOutcome(command || {});
-    return outcome.failed && outcome.note ? outcome.label + "：" + outcome.note : outcome.label;
+    return outcome.failed && outcome.note ? outcome.label + ": " + outcome.note : outcome.label;
   }
   function commandsFrom(data) {
     if (!data || typeof data !== "object") return [];
@@ -232,13 +232,13 @@
   }
   // 立即同步: separate from 刷新 (which only re-reads the snapshot).
   var SYNC_PATH = "/api/ui/crm/sync";
-  var SYNC_LABEL = "立即同步";
-  var SYNC_BUSY_LABEL = "同步中…";
+  var SYNC_LABEL = "Sync now";
+  var SYNC_BUSY_LABEL = "Syncing…";
   var SYNC_STALE_MS = 90 * 60 * 1000;
   function syncView(sync, httpError) {
     var s = sync && typeof sync === "object" ? sync : {};
     var state = String(s.state || "idle");
-    var last = s.last_sync_at ? "上次同步：" + displayTime(s.last_sync_at) : "尚未手动同步";
+    var last = s.last_sync_at ? "Last sync: " + displayTime(s.last_sync_at) : "Not synced yet";
     if (state === "pending" || state === "syncing") {
       // Never show 同步中 forever: a run with no result for 90 min is shown as timed out.
       var since = Date.parse(s.started_at || s.requested_at || "");
@@ -247,11 +247,11 @@
     }
     var wait = Number(s.next_allowed_in_s || 0);
     var text = last;
-    if (state === "timed_out") text = "同步超时 · " + last;
-    else if (state === "failed") text = "同步失败 · " + last;
+    if (state === "timed_out") text = "Sync timed out · " + last;
+    else if (state === "failed") text = "Sync failed · " + last;
     if (httpError === 429 || wait > 0) {
       var mins = Math.max(1, Math.ceil(wait / 60));
-      return {label: SYNC_LABEL, disabled: wait > 0, busy: false, text: text + " · 10 分钟内只能同步一次（约 " + mins + " 分钟后可再试）"};
+      return {label: SYNC_LABEL, disabled: wait > 0, busy: false, text: text + " · only once every 10 minutes (try again in about " + mins + " min)"};
     }
     return {label: SYNC_LABEL, disabled: false, busy: false, text: text};
   }
@@ -356,7 +356,7 @@
     function renderSnapshotLine() {
       var line = el("crm-snapshot-at");
       if (!line) return;
-      line.textContent = state.snapshotAt ? "数据更新于 " + displayTime(state.snapshotAt) : (state.offline ? "" : "尚未收到数据");
+      line.textContent = state.snapshotAt ? "Updated " + displayTime(state.snapshotAt) : (state.offline ? "" : "No data yet");
     }
     function browserStorage() {
       try { return root.localStorage; } catch (e) { return null; }
@@ -375,7 +375,7 @@
       if (state.offline) { if (count) count.textContent = "0"; placeholder(list, OFFLINE_TEXT); return; }
       if (count) count.textContent = String(state.items.length);
       list.innerHTML = "";
-      if (!state.items.length) { placeholder(list, state.snapshotAt ? "没有符合筛选的记录。" : EMPTY_TEXT); return; }
+      if (!state.items.length) { placeholder(list, state.snapshotAt ? "No records match the filters." : EMPTY_TEXT); return; }
       state.items.forEach(function (p) {
         var button = document.createElement("button");
         button.type = "button";
@@ -388,23 +388,23 @@
         name.textContent = safeText(p.name || (p.identities && p.identities[0] && p.identities[0].handle) || p.id);
         head.appendChild(name);
         if (p.unanswered) {
-          var badge = document.createElement("span"); badge.className = "crm-badge crm-badge-due"; badge.textContent = "待回复";
+          var badge = document.createElement("span"); badge.className = "crm-badge crm-badge-due"; badge.textContent = "Awaiting reply";
           head.appendChild(badge);
         }
         if (p.do_not_contact) {
-          var dnc = document.createElement("span"); dnc.className = "crm-badge crm-badge-dnc"; dnc.textContent = "勿联系";
+          var dnc = document.createElement("span"); dnc.className = "crm-badge crm-badge-dnc"; dnc.textContent = "Do not contact";
           head.appendChild(dnc);
         }
         var meta = document.createElement("span");
         meta.className = "client-row-meta";
-        meta.textContent = [(p.channels || []).map(channelLabel).join(" / ") || "无渠道", stageLabel(p.stage),
+        meta.textContent = [(p.channels || []).map(channelLabel).join(" / ") || "No channel", stageLabel(p.stage),
                             p.country ? safeText(p.country) : ""].filter(Boolean).join(" · ");
         var last = document.createElement("span");
         last.className = "crm-last";
         var lm = p.last_message;
-        last.textContent = lm ? (DIRECTIONS[lm.direction] || "") + "：" + safeText(lm.preview || "").slice(0, 80) +
-          (lm.direction === "out" && (lm.status_label || STATUS[lm.status]) ? "（" + (lm.status_label || STATUS[lm.status]) + "）" : "") +
-          " · " + displayTime(lm.ts) : "暂无消息";
+        last.textContent = lm ? (DIRECTIONS[lm.direction] || "") + ": " + safeText(lm.preview || "").slice(0, 80) +
+          (lm.direction === "out" && (STATUS[lm.status] || lm.status_label) ? " (" + (STATUS[lm.status] || lm.status_label) + ")" : "") +
+          " · " + displayTime(lm.ts) : "No messages";
         button.appendChild(head); button.appendChild(meta); button.appendChild(last);
         button.addEventListener("click", function () { selectParty(p.id); });
         list.appendChild(button);
@@ -414,7 +414,7 @@
       if (value == null || value === "" || (Array.isArray(value) && !value.length)) return;
       var row = document.createElement("div");
       var term = document.createElement("dt"); term.textContent = name;
-      var detail = document.createElement("dd"); detail.textContent = Array.isArray(value) ? value.join("、") : String(value);
+      var detail = document.createElement("dd"); detail.textContent = Array.isArray(value) ? value.join(", ") : String(value);
       row.appendChild(term); row.appendChild(detail); list.appendChild(row);
     }
     function setComposerVisible(on) {
@@ -548,14 +548,14 @@
       if (turnId == null || state.commandsAvailable === false || !state.selected) return;
       if (approvalLocked(turnId)) return;
       var agreed = false;
-      try { agreed = Boolean(root.confirm && root.confirm("同意发布这条草稿？")); }
+      try { agreed = Boolean(root.confirm && root.confirm("Approve this draft?")); }
       catch (e) { agreed = false; }
       if (!agreed) return;
       if (approvalLocked(turnId)) return;
       var partyId = state.selected;
       state.approving[String(turnId)] = true;
       var button = state.approveButtons[String(turnId)];
-      if (button) { button.disabled = true; button.textContent = "已提交"; }
+      if (button) { button.disabled = true; button.textContent = "Submitted"; }
       postCommand({type: "approve_draft", party_id: partyId, turn_id: turnId}).then(function (data) {
         var commandId = data && data.id;
         if (commandId == null || commandId === "") throw Object.assign(new Error("missing_id"), {code: "failed", note: "missing_id"});
@@ -576,7 +576,7 @@
     }
     function renderEmptyDetail(text) {
       ["crm-facts", "crm-identities"].forEach(function (id) { var n = el(id); if (n) n.innerHTML = ""; });
-      var title = el("crm-selected-title"); if (title) title.textContent = "选择一位客户";
+      var title = el("crm-selected-title"); if (title) title.textContent = "Select a customer";
       var badges = el("crm-selected-badges"); if (badges) badges.innerHTML = "";
       placeholder(el("crm-chat"), text);
       setComposerVisible(false);
@@ -587,8 +587,8 @@
       var badges = el("crm-selected-badges");
       if (badges) {
         badges.innerHTML = "";
-        [[PARTIES[p.party_type] || "", "party"], [p.unanswered ? "待回复" : "", "due"], [p.do_not_contact ? "勿联系" : "", "dnc"],
-         [p.human_takeover ? "人工接管" : "", "takeover"]].forEach(function (b) {
+        [[PARTIES[p.party_type] || "", "party"], [p.unanswered ? "Awaiting reply" : "", "due"], [p.do_not_contact ? "Do not contact" : "", "dnc"],
+         [p.human_takeover ? "Human takeover" : "", "takeover"]].forEach(function (b) {
           if (!b[0]) return;
           var s = document.createElement("span"); s.className = "crm-badge crm-badge-" + b[1]; s.textContent = b[0]; badges.appendChild(s);
         });
@@ -596,43 +596,43 @@
       var facts = el("crm-facts");
       if (facts) {
         facts.innerHTML = "";
-        addFact(facts, "类型", KINDS[p.kind] || p.kind);
-        addFact(facts, "阶段", stageLabel(p.stage));
-        addFact(facts, "国家", safeText(p.country || ""));
-        addFact(facts, "地区", safeText(p.location || ""));
-        addFact(facts, "语言", safeText(p.language || ""));
+        addFact(facts, "Type", KINDS[p.kind] || p.kind);
+        addFact(facts, "Stage", stageLabel(p.stage));
+        addFact(facts, "Country", safeText(p.country || ""));
+        addFact(facts, "Location", safeText(p.location || ""));
+        addFact(facts, "Language", safeText(p.language || ""));
         var interest = p.interest && typeof p.interest === "object" ? p.interest : {};
         var bits = Object.keys(interest).map(function (k) { return (INTEREST[k] || k) + " " + safeText(interest[k]); });
-        addFact(facts, "需求", bits);
-        addFact(facts, "首次联系", p.first_seen ? displayTime(p.first_seen) : "");
-        addFact(facts, "最近来信", p.last_inbound_at ? displayTime(p.last_inbound_at) : "");
-        addFact(facts, "最近回复", p.last_outbound_at ? displayTime(p.last_outbound_at) : "");
-        addFact(facts, "勿联系原因", safeText(p.dnc_reason || ""));
-        addFact(facts, "摘要", safeText(p.summary || ""));
-        addFact(facts, "备注", safeText(p.notes || ""));
+        addFact(facts, "Need", bits);
+        addFact(facts, "First contact", p.first_seen ? displayTime(p.first_seen) : "");
+        addFact(facts, "Last inbound", p.last_inbound_at ? displayTime(p.last_inbound_at) : "");
+        addFact(facts, "Last reply", p.last_outbound_at ? displayTime(p.last_outbound_at) : "");
+        addFact(facts, "Do-not-contact reason", safeText(p.dnc_reason || ""));
+        addFact(facts, "Summary", safeText(p.summary || ""));
+        addFact(facts, "Notes", safeText(p.notes || ""));
         if (p.supplier) {
-          addFact(facts, "供应商名称", safeText(p.supplier.supplier_name || ""));
-          addFact(facts, "供应品牌", (p.supplier.brands || []).map(safeText));
-          addFact(facts, "供应型号", (p.supplier.models || []).map(safeText));
-          addFact(facts, "所在地区", (p.supplier.regions || []).map(safeText));
-          addFact(facts, "价格备注", safeText(p.supplier.price_notes || ""));
-          addFact(facts, "可靠性备注", safeText(p.supplier.reliability_notes || ""));
-          addFact(facts, "网站", safeText(p.supplier.website || ""));
+          addFact(facts, "Supplier name", safeText(p.supplier.supplier_name || ""));
+          addFact(facts, "Brands supplied", (p.supplier.brands || []).map(safeText));
+          addFact(facts, "Models supplied", (p.supplier.models || []).map(safeText));
+          addFact(facts, "Regions", (p.supplier.regions || []).map(safeText));
+          addFact(facts, "Price notes", safeText(p.supplier.price_notes || ""));
+          addFact(facts, "Reliability notes", safeText(p.supplier.reliability_notes || ""));
+          addFact(facts, "Website", safeText(p.supplier.website || ""));
         }
-        addFact(facts, "消息数", String(p.turn_count || (p.turns || []).length));
+        addFact(facts, "Messages", String(p.turn_count || (p.turns || []).length));
       }
       var ids = el("crm-identities");
       if (ids) {
         ids.innerHTML = "";
-        var h = document.createElement("h3"); h.textContent = "各渠道身份"; ids.appendChild(h);
+        var h = document.createElement("h3"); h.textContent = "Identities"; ids.appendChild(h);
         var ul = document.createElement("ul");
         (p.identities || []).forEach(function (i) {
           var li = document.createElement("li");
-          li.textContent = channelLabel(i.channel) + "：" + safeText(i.handle || "") +
-            (i.display_name ? "（" + safeText(i.display_name) + "）" : "") + (i.verified ? " · 已核实" : " · 未核实");
+          li.textContent = channelLabel(i.channel) + ": " + safeText(i.handle || "") +
+            (i.display_name ? " (" + safeText(i.display_name) + ")" : "") + (i.verified ? " · Verified" : " · Not verified");
           ul.appendChild(li);
         });
-        if (!ul.childNodes.length) { var none = document.createElement("p"); none.textContent = "没有记录的身份。"; ids.appendChild(none); }
+        if (!ul.childNodes.length) { var none = document.createElement("p"); none.textContent = "No identities on record."; ids.appendChild(none); }
         else ids.appendChild(ul);
       }
       var chat = el("crm-chat");
@@ -658,7 +658,7 @@
             var existing = latestCommand(partyCommands(), "approve_draft", t.id);
             if (existing || state.approving[String(t.id)]) {
               tag.disabled = true;
-              tag.textContent = existing ? commandStatusText(existing) : "已提交";
+              tag.textContent = existing ? commandStatusText(existing) : "Submitted";
             } else {
               tag.textContent = APPROVE_LABEL;
               tag.addEventListener("click", function () { approveTurn(t); });
@@ -681,7 +681,7 @@
         }
         chat.appendChild(item);
       });
-      if (!turns.length) placeholder(chat, "还没有对话记录。");
+      if (!turns.length) placeholder(chat, "No conversation yet.");
       else chat.scrollTop = chat.scrollHeight;
       setComposerVisible(state.commandsAvailable !== false);
       var send = el("crm-compose-send");
@@ -714,7 +714,7 @@
     function loadList() {
       if (!moduleActive() || state.loading) return;
       state.loading = true;
-      setMessage("正在加载客户画像…");
+      setMessage("Loading customer profiles…");
       var f = filters();
       request(listQuery(f)).then(function (data) {
         state.offline = false;
@@ -722,12 +722,12 @@
         state.snapshotAt = data.snapshot_at || null;
         state.facets = data.facets || null;
         if (state.facets) {
-          fillSelect("crm-channel", state.facets.channels, CHANNELS, "全部渠道");
-          fillSelect("crm-stage", state.facets.stages, STAGES, "全部阶段");
+          fillSelect("crm-channel", state.facets.channels, CHANNELS, "All channels");
+          fillSelect("crm-stage", state.facets.stages, STAGES, "All stages");
           var pt = state.facets.party_types || {};
           var party = el("crm-party");
           if (party) Array.prototype.forEach.call(party.options, function (o) {
-            o.textContent = (PARTIES[o.value] || o.value) + (pt[o.value] != null ? "（" + pt[o.value] + "）" : "");
+            o.textContent = (PARTIES[o.value] || o.value) + (pt[o.value] != null ? " (" + pt[o.value] + ")" : "");
           });
         }
         var keep = state.selected;
@@ -735,15 +735,15 @@
         if (!still) state.selected = null;
         renderList();
         if (still) selectParty(keep);
-        else renderEmptyDetail(state.items.length ? "选择一位客户查看画像和完整对话。" : (state.snapshotAt ? "没有符合筛选的记录。" : EMPTY_TEXT));
+        else renderEmptyDetail(state.items.length ? "Select a customer to see the profile and the full conversation." : (state.snapshotAt ? "No records match the filters." : EMPTY_TEXT));
         setMessage("");
       }).catch(function (error) {
         if (error && error.code === "unauthorized") return;
         state.items = []; state.selected = null;
         state.offline = Boolean(error && error.code === "offline");
         renderList();
-        renderEmptyDetail(state.offline ? OFFLINE_TEXT : "客户画像暂时无法加载。");
-        setMessage(state.offline ? OFFLINE_TEXT : "客户画像暂时无法加载。", !state.offline);
+        renderEmptyDetail(state.offline ? OFFLINE_TEXT : "Customer profiles could not be loaded.");
+        setMessage(state.offline ? OFFLINE_TEXT : "Customer profiles could not be loaded.", !state.offline);
       }).then(function () { state.loading = false; });
     }
     function selectParty(id) {
@@ -751,7 +751,7 @@
       var changed = state.selected !== id;
       state.selected = id;
       renderList();
-      setMessage("正在加载对话…");
+      setMessage("Loading the conversation…");
       request(detailPath(id)).then(function (data) {
         if (state.selected !== id) return;
         if (!data || !data.party) throw Object.assign(new Error("missing"), {code: "missing"});
@@ -769,8 +769,8 @@
         if (error && error.code === "unauthorized") return;
         if (state.selected !== id) return;
         state.party = null;
-        renderEmptyDetail(error && error.code === "missing" ? "没有这位客户的记录。" : "对话暂时无法加载。");
-        setMessage(error && error.code === "missing" ? "" : "对话暂时无法加载。", !(error && error.code === "missing"));
+        renderEmptyDetail(error && error.code === "missing" ? "No record for this customer." : "The conversation could not be loaded.");
+        setMessage(error && error.code === "missing" ? "" : "The conversation could not be loaded.", !(error && error.code === "missing"));
       });
     }
     function debounced() { root.clearTimeout(state.timer); state.timer = root.setTimeout(loadList, 250); }
@@ -831,7 +831,7 @@
       var b = ensureSyncButton();
       if (b) { b.textContent = SYNC_LABEL; b.disabled = false; b.setAttribute("aria-busy", "false"); }
       var note = el("crm-sync-status");
-      if (note) note.textContent = "同步状态暂时读取失败，稍后自动重试。";
+      if (note) note.textContent = "Could not read sync status. Retrying shortly.";
       root.clearTimeout(syncState.timer);
       syncState.timer = root.setTimeout(loadSync, 60000);
     }
@@ -851,7 +851,7 @@
       syncRequest("POST").then(function (r) { renderSync(r.sync, r.status); }, function (error) {
         if (btn) { btn.disabled = false; btn.textContent = SYNC_LABEL; }
         if (error && error.code === "unauthorized") return;
-        var note = el("crm-sync-status"); if (note) note.textContent = "同步请求未发出，请稍后再试。";
+        var note = el("crm-sync-status"); if (note) note.textContent = "The sync request was not sent. Try again shortly.";
       });
     }
     ensureSyncButton();

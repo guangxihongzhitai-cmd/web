@@ -7,13 +7,15 @@
   "use strict";
   var API = "https://api.hongzhtaichina.com";
   var LIST_PATH = "/api/ui/sandbox-transcripts";
-  var OFFLINE_TEXT = "暂无记录 / 后端未上线";
-  var EMPTY_TEXT = "暂无记录";
-  var VIN_LABEL = "[车架号已隐藏]";
-  var PLATE_LABEL = "[车牌已隐藏]";
-  var SECRET_LABEL = "[凭证已隐藏]";
+  var OFFLINE_TEXT = "No records / backend offline";
+  var EMPTY_TEXT = "No records";
+  var VIN_LABEL = "[VIN hidden]";
+  var PLATE_LABEL = "[plate hidden]";
+  var SECRET_LABEL = "[secret hidden]";
   var SPEAKERS = {"客户": "customer", "Tbot": "tbot", "供应商": "supplier", "Gbot(代Town审批)": "gbot"};
+  var SPEAKER_LABELS = {"客户": "Customer", "Tbot": "Tbot", "供应商": "Supplier", "Gbot(代Town审批)": "Gbot (for Town)"};
   var OUTCOMES = {"成交": "won", "拒绝": "lost", "中止": "stopped"};
+  var OUTCOME_LABELS = {"成交": "Won", "拒绝": "Lost", "中止": "Stopped"};
   var VIN_RE = /(?<![A-HJ-NPR-Z0-9])[A-HJ-NPR-Z0-9]{17}(?![A-HJ-NPR-Z0-9])/g;
   var PLATE_RE = /[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领][A-Z][·.\- ]?[A-HJ-NP-Z0-9]{4,6}[挂学警港澳]?(?![A-Z0-9])/g;
   var PEM_RE = /-----BEGIN [A-Z0-9 ]+-----[\s\S]+?-----END [A-Z0-9 ]+-----/g;
@@ -66,18 +68,21 @@
     var parts = [];
     if (truck) parts.push(truck);
     if (destination) parts.push(destination);
-    var head = parts.length ? parts.join("，") : "未写场景";
-    if (budget) return head + "（预算 " + budget + "）";
+    var head = parts.length ? parts.join(", ") : "No scenario";
+    if (budget) return head + " (budget " + budget + ")";
     return head;
   }
 
   function outcomeLabel(run) {
     var outcome = run && run.outcome && typeof run.outcome === "object" ? run.outcome : {};
     var label = String(outcome.result || "").trim();
-    return Object.prototype.hasOwnProperty.call(OUTCOMES, label) ? label : "—";
+    return Object.prototype.hasOwnProperty.call(OUTCOME_LABELS, label) ? OUTCOME_LABELS[label] : "—";
   }
 
   function outcomeClass(label) {
+    if (label === "Won") return "won";
+    if (label === "Lost") return "lost";
+    if (label === "Stopped") return "stopped";
     return OUTCOMES[label] || "stopped";
   }
 
@@ -161,7 +166,7 @@
         return;
       }
       if (!rows.length) {
-        placeholder(list, "没有符合筛选的沙盘记录。");
+        placeholder(list, "No sandbox records match the filters.");
         return;
       }
       rows.forEach(function (run) {
@@ -183,7 +188,7 @@
         head.appendChild(badge);
         var meta = document.createElement("span");
         meta.className = "client-row-meta";
-        meta.textContent = scenarioLine(run.scenario) + " · 最终价格 " + finalPrice(run);
+        meta.textContent = scenarioLine(run.scenario) + " · Final price " + finalPrice(run);
         var idLine = document.createElement("span");
         idLine.className = "sandbox-run-id";
         idLine.textContent = redactText(runId);
@@ -200,7 +205,7 @@
       var facts = el("sandbox-facts");
       var quotes = el("sandbox-quotes");
       var chat = el("sandbox-chat");
-      if (title) title.textContent = "选择一场记录";
+      if (title) title.textContent = "Select a run";
       if (badge) badge.textContent = "";
       if (facts) facts.innerHTML = "";
       if (quotes) quotes.innerHTML = "";
@@ -224,23 +229,23 @@
       var chat = el("sandbox-chat");
       var label = outcomeLabel(run);
       var outcome = run.outcome && typeof run.outcome === "object" ? run.outcome : {};
-      if (title) title.textContent = redactText(run.run_id) || "沙盘记录";
+      if (title) title.textContent = redactText(run.run_id) || "Sandbox";
       if (badge) {
         badge.className = "sandbox-outcome sandbox-outcome-" + outcomeClass(label);
         badge.textContent = label;
       }
       if (facts) {
         facts.innerHTML = "";
-        addFact(facts, "场景", scenarioLine(run.scenario));
-        addFact(facts, "开始", displayTime(run.started_at));
-        addFact(facts, "结束", displayTime(run.ended_at));
-        addFact(facts, "原因", redactText(outcome.reason).trim() || "未写明原因");
-        addFact(facts, "最终价格", finalPrice(run));
+        addFact(facts, "Scenario", scenarioLine(run.scenario));
+        addFact(facts, "Started", displayTime(run.started_at));
+        addFact(facts, "Ended", displayTime(run.ended_at));
+        addFact(facts, "Reason", redactText(outcome.reason).trim() || "No reason given");
+        addFact(facts, "Final price", finalPrice(run));
       }
       if (quotes) {
         quotes.innerHTML = "";
         var heading = document.createElement("h3");
-        heading.textContent = "报价版本";
+        heading.textContent = "Quote versions";
         quotes.appendChild(heading);
         var items = Array.isArray(run.quotes) ? run.quotes : [];
         var list = document.createElement("ol");
@@ -252,7 +257,7 @@
           var version = document.createElement("span");
           version.className = "sandbox-quote-version";
           var versionNo = Number(quote.version);
-          version.textContent = versionNo > 0 ? "第 " + versionNo + " 版" : "报价";
+          version.textContent = versionNo > 0 ? "Version " + versionNo : "Quote";
           item.appendChild(version);
           item.appendChild(document.createTextNode(" " + price));
           var note = redactText(quote.note).trim();
@@ -267,7 +272,7 @@
         if (!list.childNodes.length) {
           var empty = document.createElement("p");
           empty.className = "sandbox-empty-note";
-          empty.textContent = "这次运行没有留下报价版本。";
+          empty.textContent = "This run left no quote versions.";
           quotes.appendChild(empty);
         } else {
           quotes.appendChild(list);
@@ -288,7 +293,7 @@
         item.className = "client-message sandbox-" + css;
         var meta = document.createElement("div");
         meta.className = "client-message-meta";
-        meta.textContent = speaker + " · " + displayTime(turn.timestamp);
+        meta.textContent = (SPEAKER_LABELS[speaker] || speaker) + " · " + displayTime(turn.timestamp);
         var body = document.createElement("div");
         body.className = "client-message-text";
         body.textContent = text;
@@ -297,7 +302,7 @@
         chat.appendChild(item);
         count += 1;
       });
-      if (!count) placeholder(chat, "这次运行没有留下对话。");
+      if (!count) placeholder(chat, "This run left no transcript.");
       else chat.scrollTop = chat.scrollHeight;
     }
     function request(path) {
@@ -334,7 +339,7 @@
     function loadRuns() {
       if (!moduleActive() || state.loading) return;
       state.loading = true;
-      setMessage("正在加载沙盘记录…");
+      setMessage("Loading sandbox records…");
       request(LIST_PATH + "?refresh=" + Date.now()).then(function (data) {
         var keep = state.selected;
         state.offline = false;
@@ -344,7 +349,7 @@
         renderList();
         if (!state.runs.length) renderEmptyDetail(EMPTY_TEXT);
         else if (stillThere) selectRun(keep);
-        else renderEmptyDetail("选择一场记录查看对话。");
+        else renderEmptyDetail("Select a run to read the transcript.");
         if (!stillThere) setMessage("");
       }).catch(function (error) {
         if (error && error.code === "unauthorized") return;
@@ -352,15 +357,15 @@
         state.selected = null;
         state.offline = Boolean(error && error.code === "offline");
         renderList();
-        renderEmptyDetail(state.offline ? OFFLINE_TEXT : "沙盘记录暂时无法加载。");
-        setMessage(state.offline ? OFFLINE_TEXT : "沙盘记录暂时无法加载。", !state.offline);
+        renderEmptyDetail(state.offline ? OFFLINE_TEXT : "Sandbox records could not be loaded.");
+        setMessage(state.offline ? OFFLINE_TEXT : "Sandbox records could not be loaded.", !state.offline);
       }).then(function () { state.loading = false; });
     }
     function selectRun(runId) {
       if (!safeRunId(runId)) return;
       state.selected = runId;
       renderList();
-      setMessage("正在加载这场对话…");
+      setMessage("Loading this transcript…");
       request(detailPath(runId)).then(function (data) {
         var run = data && data.run;
         if (!run || typeof run !== "object") throw Object.assign(new Error("missing"), {code: "missing"});
@@ -370,8 +375,8 @@
       }).catch(function (error) {
         if (error && error.code === "unauthorized") return;
         if (state.selected !== runId) return;
-        renderEmptyDetail(error && error.code === "offline" ? "没有这场沙盘记录。" : "这场对话暂时无法加载。");
-        setMessage(error && error.code === "offline" ? "" : "这场对话暂时无法加载。", !(error && error.code === "offline"));
+        renderEmptyDetail(error && error.code === "offline" ? "This sandbox record was not found." : "This transcript could not be loaded.");
+        setMessage(error && error.code === "offline" ? "" : "This transcript could not be loaded.", !(error && error.code === "offline"));
       });
     }
     document.addEventListener("click", function (event) {

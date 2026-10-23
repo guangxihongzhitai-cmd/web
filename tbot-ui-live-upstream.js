@@ -51,7 +51,7 @@
       var name = document.createElement("strong"); name.textContent = row.name || row.supplier_ref;
       var stamp = document.createElement("time"); stamp.className = "client-row-time"; stamp.textContent = row.last_activity_display || "--";
       head.appendChild(name); head.appendChild(stamp);
-      var meta = document.createElement("span"); meta.className = "client-row-meta"; meta.textContent = [row.phone_display || row.phone || row.supplier_ref, row.country, "供应商·卖方", "Tbot·采购方", row.status, row.vehicle_summary, row.linked_customer_name ? ("客户: " + row.linked_customer_name) : ""].filter(Boolean).join(" · ");
+      var meta = document.createElement("span"); meta.className = "client-row-meta"; meta.textContent = [row.phone_display || row.phone || row.supplier_ref, row.country, "Supplier · seller", "Tbot · buyer", row.status, row.vehicle_summary, row.linked_customer_name ? ("Customer: " + row.linked_customer_name) : ""].filter(Boolean).join(" · ");
       item.appendChild(head); item.appendChild(meta); item.addEventListener("click", function () { selectRow(row.supplier_ref); }); list.appendChild(item);
     });
   }
@@ -62,7 +62,7 @@
     if (!appendOlder) { state.messageBefore = Number(page.next_before || state.messages.length || 0); state.messageHasMore = Boolean(page.has_more); }
     var row = data.selected || state.rows.filter(function (item) { return item.supplier_ref === state.selected; })[0];
     var title = el("selected-upstream-title");
-    if (title) title.textContent = row ? ((row.name || row.supplier_ref) + " · 供应商卖方 / Tbot采购方 · " + (row.phone_display || row.phone || row.supplier_ref) + (row.linked_customer_name ? (" · 客户: " + row.linked_customer_name) : "")) : "Select a supplier";
+    if (title) title.textContent = row ? ((row.name || row.supplier_ref) + " · Supplier (seller) / Tbot (buyer) · " + (row.phone_display || row.phone || row.supplier_ref) + (row.linked_customer_name ? (" · Customer: " + row.linked_customer_name) : "")) : "Select a supplier";
     ["upstream-copy-phone", "upstream-copy-wa"].forEach(function (id) { if (el(id)) el(id).disabled = !row; });
     var box = el("tbot-ui-live-upstream-chat"); if (!box) return;
     box.innerHTML = "";

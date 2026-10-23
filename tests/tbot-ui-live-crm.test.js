@@ -9,26 +9,26 @@ test("private numbers are partially masked, dates are not", () => {
   assert.equal(crm.maskPhone("+8619912345777"), "+861*******777");
   assert.equal(crm.safeText("call +254 700 111 222 on 2026-10-01"), "call +254******222 on 2026-10-01");
   assert.equal(crm.safeText("already +861*******777"), "already +861*******777");
-  assert.match(crm.safeText("token=abcdefghijklmnop1234"), /\[凭证已隐藏\]/);
+  assert.match(crm.safeText("token=abcdefghijklmnop1234"), /\[secret hidden\]/);
 });
 
-test("drafted shows 草稿, blocked shows 被拦截, inbound has no status", () => {
-  assert.equal(crm.statusLabel({direction: "out", status: "drafted"}), "草稿");
-  assert.equal(crm.statusLabel({direction: "out", status: "blocked"}), "被拦截");
-  assert.equal(crm.statusLabel({direction: "out", status: "sent"}), "已发送");
+test("drafted shows Draft, blocked shows Blocked, inbound has no status", () => {
+  assert.equal(crm.statusLabel({direction: "out", status: "drafted"}), "Draft");
+  assert.equal(crm.statusLabel({direction: "out", status: "blocked"}), "Blocked");
+  assert.equal(crm.statusLabel({direction: "out", status: "sent"}), "Sent");
   assert.equal(crm.statusLabel({direction: "in", status: "blocked"}), "");
 });
 
-test("labels are Chinese", () => {
-  assert.equal(crm.channelLabel("website"), "网站聊天");
-  assert.equal(crm.stageLabel("negotiating"), "议价中");
-  assert.equal(crm.stageLabel(""), "未设置");
+test("labels are English", () => {
+  assert.equal(crm.channelLabel("website"), "Website chat");
+  assert.equal(crm.stageLabel("negotiating"), "Negotiating");
+  assert.equal(crm.stageLabel(""), "Not set");
 });
 
 test("turns sort oldest first; missing text is explained", () => {
   const t = crm.sortTurns([{id: 2, ts: "2026-10-02T00:00:00Z"}, {id: 1, ts: "2026-10-01T00:00:00Z"}]);
   assert.deepEqual(t.map((x) => x.id), [1, 2]);
-  assert.equal(crm.turnText({text: "", text_missing: true, missing_note: "sticker"}), "[无文字内容：sticker]");
+  assert.equal(crm.turnText({text: "", text_missing: true, missing_note: "sticker"}), "[No text: sticker]");
 });
 
 test("query strings and detail paths are encoded", () => {
@@ -163,21 +163,21 @@ test("fixture hook filters like the Worker", () => {
   assert.equal(crm.fixtureResponse(fx, "/api/ui/crm/buyers/b_bbbb2").party.id, "b_bbbb2");
 });
 
-test("page wiring: sidebar link next to 沙盘记录, panel, script, nav title, refresh guard", () => {
+test("page wiring: sidebar link next to Sandbox, panel, script, nav title, refresh guard", () => {
   const root = path.join(__dirname, "..");
   const html = fs.readFileSync(path.join(root, "tbot-ui.html"), "utf8");
-  assert.match(html, /data-module="sandbox"[^>]*>沙盘记录<\/a><a class="side-link" data-module="crm" href="#crm">客户画像<\/a>/);
+  assert.match(html, /data-module="sandbox"[^>]*>Sandbox<\/a><a class="side-link" data-module="crm" href="#crm">Customer profiles<\/a>/);
   assert.match(html, /data-panel="crm"/);
   assert.match(html, /<script src="\.\/tbot-ui-live-crm\.js\?v=[^"]+"><\/script>/);
   for (const id of ["crm-search", "crm-party", "crm-channel", "crm-stage", "crm-unanswered", "crm-sort", "crm-list", "crm-count", "crm-chat", "crm-facts", "crm-identities", "crm-composer", "crm-compose-text", "crm-compose-send", "crm-compose-status"]) {
     assert.match(html, new RegExp('id="' + id + '"'), id);
   }
-  assert.match(html, /<select id="crm-sort" aria-label="排序"><option value="latest"[^>]*>按最新时间<\/option><option value="frequency">按互动频率<\/option><\/select>/);
-  assert.match(html, /id="crm-compose-text"[^>]*placeholder="写草稿（中文即可），Gbot 会润色翻译后发送"/);
-  assert.match(html, /id="crm-compose-send"[^>]*>发送给 Gbot<\/button>/);
+  assert.match(html, /<select id="crm-sort" aria-label="Sort"><option value="latest"[^>]*>Latest activity<\/option><option value="frequency">Most active<\/option><\/select>/);
+  assert.match(html, /id="crm-compose-text"[^>]*placeholder="Write a draft \(Chinese is fine\). Gbot will polish, translate and send it."/);
+  assert.match(html, /id="crm-compose-send"[^>]*>Send to Gbot<\/button>/);
   assert.match(html, /id="crm-composer"[^>]*hidden/);
   assert.match(fs.readFileSync(path.join(root, "tbot-ui-modules.css"), "utf8"), /\.crm-text-zh\{[^}]*font-size:11px/);
-  assert.match(fs.readFileSync(path.join(root, "tbot-ui-nav-20260810.js"), "utf8"), /"crm":\["客户画像"/);
+  assert.match(fs.readFileSync(path.join(root, "tbot-ui-nav-20260810.js"), "utf8"), /"crm":\["Customer profiles"/);
   assert.match(fs.readFileSync(path.join(root, "tbot-ui-refresh-guard.js"), "utf8"), /install\('crm', 'crm-count', 'crm-refresh'/);
   // the only write is POST /api/ui/crm/commands; text still goes through textContent
   const js = fs.readFileSync(path.join(root, "tbot-ui-live-crm.js"), "utf8");
@@ -189,18 +189,18 @@ test("page wiring: sidebar link next to 沙盘记录, panel, script, nav title, 
   assert.doesNotMatch(js, /innerHTML\s*=(?!\s*""\s*;)/);   // only innerHTML = "" (clears); text goes through textContent
 });
 
-test("text_zh is shown only when it differs, and command status maps to 已提交 / 已发送 / 失败", () => {
+test("text_zh is shown only when it differs, and command status maps to Submitted / Sent / Failed", () => {
   assert.equal(crm.translationText({text: "Need a pump", text_zh: "需要一台泵车"}), "需要一台泵车");
   assert.equal(crm.translationText({text: "你好", text_zh: "  你好  "}), "");
   assert.equal(crm.translationText({text: "你好", text_zh: ""}), "");
   assert.equal(crm.translationText({text: "你好"}), "");
   assert.equal(crm.translationText({text: "hi", text_zh: "电话 +254 700 111 222"}), "电话 +254******222");
-  assert.equal(crm.translationText({text: "hi", text_zh: "<b>token=abcdefghijklmnop1234</b>"}), "<b>[凭证已隐藏]</b>");
-  assert.equal(crm.commandStatusText({status: "submitted"}), "已提交");
-  assert.equal(crm.commandStatusText({status: "queued"}), "已提交");
-  assert.equal(crm.commandStatusText({status: "sent"}), "已发送");
-  assert.equal(crm.commandStatusText({status: "failed", note: "线路不通 +254 700 111 222"}), "失败：线路不通 +254******222");
-  assert.equal(crm.commandStatusText({status: "failed", note: ""}), "失败");
+  assert.equal(crm.translationText({text: "hi", text_zh: "<b>token=abcdefghijklmnop1234</b>"}), "<b>[secret hidden]</b>");
+  assert.equal(crm.commandStatusText({status: "submitted"}), "Submitted");
+  assert.equal(crm.commandStatusText({status: "queued"}), "Submitted");
+  assert.equal(crm.commandStatusText({status: "sent"}), "Sent");
+  assert.equal(crm.commandStatusText({status: "failed", note: "线路不通 +254 700 111 222"}), "Failed: 线路不通 +254******222");
+  assert.equal(crm.commandStatusText({status: "failed", note: ""}), "Failed");
   assert.equal(crm.commandOutcome({status: "done"}).pending, false);
   assert.equal(crm.commandOutcome({status: "accepted"}).pending, true);
   assert.deepEqual(crm.commandsFrom({commands: [{id: "a"}], party: {commands: [{id: "b"}]}}).map((c) => c.id), ["a"]);
@@ -347,7 +347,7 @@ test("composer posts a draft, approve publishes once, and a 404 hides both", asy
     crm.mount();
     await flush();
     assert.equal(composer.hidden, true);
-    assert.equal(textarea.placeholder, "写草稿（中文即可），Gbot 会润色翻译后发送");
+    assert.equal(textarea.placeholder, "Write a draft (Chinese is fine). Gbot will polish, translate and send it.");
     list.children[0].listeners.click();
     await flush();
     assert.equal(composer.hidden, false);
@@ -360,7 +360,7 @@ test("composer posts a draft, approve publishes once, and a 404 hides both", asy
     const approve = approveButtons();
     assert.equal(approve.length, 1);
     assert.equal(approve[0].tagName, "BUTTON");
-    assert.equal(approve[0].textContent, "草稿 · 同意发布");
+    assert.equal(approve[0].textContent, "Draft · Approve");
     assert.equal(approve[0].disabled, false);
 
     textarea.value = "   ";
@@ -375,14 +375,14 @@ test("composer posts a draft, approve publishes once, and a 404 hides both", asy
     assert.equal(send.disabled, false);
     assert.equal(textarea.value, "");
     assert.deepEqual(posted[0], {type: "compose", party_id: partyId, text: "请报38米价格"});
-    assert.equal(status.textContent, "已提交");
+    assert.equal(status.textContent, "Submitted");
 
     global.__TBOT_CRM_FIXTURE__.commandsByParty[partyId] = [
       {id: "cmd_1", type: "compose", status: "sent", created_at: "2099-01-01T00:00:00Z", note: ""},
     ];
     list.children[0].listeners.click();
     await flush();
-    assert.equal(status.textContent, "已发送");
+    assert.equal(status.textContent, "Sent");
     assert.equal(composer.hidden, false);
 
     global.__TBOT_CRM_FIXTURE__.commandsByParty[partyId] = [
@@ -390,7 +390,7 @@ test("composer posts a draft, approve publishes once, and a 404 hides both", asy
     ];
     list.children[0].listeners.click();
     await flush();
-    assert.equal(status.textContent, "失败：失败原因 <img>");
+    assert.equal(status.textContent, "Failed: 失败原因 <img>");
     assert.match(status.className, /is-error/);
 
     textarea.value = "hold";
@@ -409,15 +409,15 @@ test("composer posts a draft, approve publishes once, and a 404 hides both", asy
     global.confirmAnswer = false;
     button.listeners.click();
     await flush();
-    assert.deepEqual(confirms, ["同意发布这条草稿？"]);
+    assert.deepEqual(confirms, ["Approve this draft?"]);
     assert.equal(posted.filter((body) => body.type === "approve_draft").length, 0);
-    assert.equal(button.textContent, "草稿 · 同意发布");
+    assert.equal(button.textContent, "Draft · Approve");
     assert.equal(button.disabled, false);
 
     global.confirmAnswer = true;
     button.listeners.click();
     assert.equal(button.disabled, true);
-    assert.equal(button.textContent, "已提交");
+    assert.equal(button.textContent, "Submitted");
     button.listeners.click();
     assert.equal(confirms.length, 2);
     await flush();
@@ -436,7 +436,7 @@ test("composer posts a draft, approve publishes once, and a 404 hides both", asy
     await flush();
     const published = approveButtons()[0];
     assert.equal(published.disabled, true);
-    assert.equal(published.textContent, "已发送");
+    assert.equal(published.textContent, "Sent");
     assert.equal(published.listeners.click, undefined);
 
     global.__TBOT_CRM_FIXTURE__.commandsByParty[partyId] = global.__TBOT_CRM_FIXTURE__.commandsByParty[partyId].map((command) => (
@@ -446,7 +446,7 @@ test("composer posts a draft, approve publishes once, and a 404 hides both", asy
     await flush();
     const failed = approveButtons()[0];
     assert.equal(failed.disabled, true);
-    assert.equal(failed.textContent, "失败：对方拒收 +254******222");
+    assert.equal(failed.textContent, "Failed: 对方拒收 +254******222");
     assert.equal(failed.listeners.click, undefined);
 
     global.__TBOT_CRM_FIXTURE__.commandsHttp = 404;
@@ -457,7 +457,7 @@ test("composer posts a draft, approve publishes once, and a 404 hides both", asy
     assert.equal(posted.length, before);
     assert.equal(composer.hidden, true);
     assert.equal(approveButtons().length, 0);
-    assert.equal(walk(chat, (node) => node.tagName === "SPAN" && node.textContent === "草稿").length, 1);
+    assert.equal(walk(chat, (node) => node.tagName === "SPAN" && node.textContent === "Draft").length, 1);
   } finally {
     if (global.__TBOT_CRM_POLL__) clearInterval(global.__TBOT_CRM_POLL__);
     if (prev.document === undefined) delete global.document; else global.document = prev.document;
@@ -470,39 +470,39 @@ test("composer posts a draft, approve publishes once, and a 404 hides both", asy
   }
 });
 
-test("立即同步: busy while pending/syncing, then last sync time; timeout and rate limit", () => {
-  assert.equal(crm.SYNC_LABEL, "立即同步");
+test("Sync now: busy while pending/syncing, then last sync time; timeout and rate limit", () => {
+  assert.equal(crm.SYNC_LABEL, "Sync now");
   for (const st of ["pending", "syncing"]) {
     const v = crm.syncView({state: st});
-    assert.equal(v.label, "同步中…"); assert.equal(v.disabled, true);
+    assert.equal(v.label, "Syncing…"); assert.equal(v.disabled, true);
   }
   let v = crm.syncView({state: "done", last_sync_at: "2026-10-21T05:00:00Z", next_allowed_in_s: 0});
-  assert.equal(v.label, "立即同步"); assert.equal(v.disabled, false);
-  assert.equal(v.text, "上次同步：2026-10-21 12:00（UTC+7）");
+  assert.equal(v.label, "Sync now"); assert.equal(v.disabled, false);
+  assert.equal(v.text, "Last sync: 2026-10-21 12:00 (UTC+7)");
   v = crm.syncView({state: "timed_out", last_sync_at: "2026-10-21T05:00:00Z"});
-  assert.match(v.text, /^同步超时 · 上次同步：2026-10-21 12:00/);
+  assert.match(v.text, /^Sync timed out · Last sync: 2026-10-21 12:00/);
   v = crm.syncView({state: "done", last_sync_at: "2026-10-21T05:00:00Z", next_allowed_in_s: 250}, 429);
-  assert.equal(v.disabled, true); assert.match(v.text, /约 5 分钟后可再试/);
-  assert.equal(crm.syncView(null).text, "尚未手动同步");
+  assert.equal(v.disabled, true); assert.match(v.text, /try again in about 5 min/);
+  assert.equal(crm.syncView(null).text, "Not synced yet");
 });
 
-test("立即同步: a run stuck for over 90 min shows as timed out and the button is released", () => {
+test("Sync now: a run stuck for over 90 min shows as timed out and the button is released", () => {
   const old = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
   let v = crm.syncView({state: "syncing", requested_at: old, started_at: old});
-  assert.equal(v.label, "立即同步"); assert.equal(v.busy, false); assert.match(v.text, /^同步超时/);
+  assert.equal(v.label, "Sync now"); assert.equal(v.busy, false); assert.match(v.text, /^Sync timed out/);
   const fresh = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   v = crm.syncView({state: "syncing", requested_at: fresh, started_at: fresh});
   assert.equal(v.busy, true);
 });
 
-test("立即同步: a failed status read releases the button and keeps polling", () => {
+test("Sync now: a failed status read releases the button and keeps polling", () => {
   const src = fs.readFileSync(path.join(__dirname, "..", "tbot-ui-live-crm.js"), "utf8");
   assert.ok(src.includes("function syncReadFailed()"));
   assert.ok(/syncReadFailed\(\);/.test(src));
 });
 
-test("html: 刷新 unchanged, 立即同步 sits right after it, cache-bust bumped", () => {
+test("html: Refresh unchanged, Sync now sits right after it, cache-bust bumped", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "tbot-ui.html"), "utf8");
-  assert.ok(html.includes('data-action="crm-refresh">刷新</button><button class="module-action" type="button" id="crm-sync-now" data-action="crm-sync">立即同步</button>'));
-  assert.ok(html.includes("tbot-ui-live-crm.js?v=20261021-sync2"));
+  assert.ok(html.includes('data-action="crm-refresh">Refresh</button><button class="module-action" type="button" id="crm-sync-now" data-action="crm-sync">Sync now</button>'));
+  assert.ok(html.includes("tbot-ui-live-crm.js?v=20261023-en1"));
 });
