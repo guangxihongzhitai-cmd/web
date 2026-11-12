@@ -21,8 +21,8 @@
     whatsapp: "WhatsApp", email: "Email", phone: "Phone", web: "Web", website: "Website chat", wechat: "WeChat"};
   var STAGES = {"new": "New", engaged: "In conversation", qualified: "Need confirmed", quoted: "Quoted", negotiating: "Negotiating",
     won: "Won", lost: "Lost", dormant: "Dormant", prospect: "Prospect"};
-  var PARTIES = {buyer: "Customer", supplier: "Supplier", internal: "Internal"};
-  var KINDS = {buyer: "Buyer", prospect: "Prospect", partner: "Partner", supplier: "Supplier", internal: "Internal", spam: "Spam"};
+  var PARTIES = {buyer: "Customer", supplier: "Supplier", internal: "Staff"};
+  var KINDS = {buyer: "Buyer", prospect: "Prospect", partner: "Partner", supplier: "Supplier", internal: "Staff", spam: "Spam"};
   var DIRECTIONS = {"in": "Them", out: "Us", note: "Note"};
   var STATUS = {drafted: "Draft", blocked: "Blocked", sent: "Sent", unverified: "Delivery unconfirmed", pending: "Pending",
     failed: "Failed", cancelled: "Cancelled"};
@@ -45,6 +45,24 @@
     var text = value == null ? "" : String(value);
     SECRET_RE.lastIndex = 0; PHONE_RE.lastIndex = 0;
     return text.replace(SECRET_RE, "[secret hidden]").replace(PHONE_RE, function (m) { return maskPhone(m); });
+  }
+  function isStaffParty(party) { return !!(party && (party.party_type === "internal" || party.badge === "Staff" || party.kind === "internal")); }
+  function staffMask(value) {
+    var digits = String(value || "").replace(/\D/g, "");
+    if (digits.length < 4) return "****";
+    return "****" + digits.slice(-4);
+  }
+  // Staff numbers are ****last4. Buyer text keeps the older partial mask.
+  function partyText(party, value) {
+    var text = value == null ? "" : String(value);
+    if (isStaffParty(party)) {
+      PHONE_RE.lastIndex = 0;
+      text = text.replace(PHONE_RE, function (m) {
+        if (DATE_RE.test(String(m).trim())) return m;
+        return staffMask(m);
+      });
+    }
+    return safeText(text);
   }
   function displayTime(value) {
     var text = String(value || "").trim();
@@ -385,8 +403,14 @@
         var head = document.createElement("div");
         head.className = "client-row-head";
         var name = document.createElement("strong");
-        name.textContent = safeText(p.name || (p.identities && p.identities[0] && p.identities[0].handle) || p.id);
+        name.textContent = partyText(p, p.name || (p.identities && p.identities[0] && p.identities[0].handle) || p.id);
         head.appendChild(name);
+        if (isStaffParty(p)) {
+          var staffBadge = document.createElement("span");
+          staffBadge.className = "crm-badge crm-badge-party";
+          staffBadge.textContent = "Staff";
+          head.appendChild(staffBadge);
+        }
         if (p.unanswered) {
           var badge = document.createElement("span"); badge.className = "crm-badge crm-badge-due"; badge.textContent = "Awaiting reply";
           head.appendChild(badge);
@@ -398,11 +422,11 @@
         var meta = document.createElement("span");
         meta.className = "client-row-meta";
         meta.textContent = [(p.channels || []).map(channelLabel).join(" / ") || "No channel", stageLabel(p.stage),
-                            p.country ? safeText(p.country) : ""].filter(Boolean).join(" · ");
+                            p.country ? partyText(p, p.country) : ""].filter(Boolean).join(" · ");
         var last = document.createElement("span");
         last.className = "crm-last";
         var lm = p.last_message;
-        last.textContent = lm ? (DIRECTIONS[lm.direction] || "") + ": " + safeText(lm.preview || "").slice(0, 80) +
+        last.textContent = lm ? (DIRECTIONS[lm.direction] || "") + ": " + partyText(p, lm.preview || "").slice(0, 80) +
           (lm.direction === "out" && (STATUS[lm.status] || lm.status_label) ? " (" + (STATUS[lm.status] || lm.status_label) + ")" : "") +
           " · " + displayTime(lm.ts) : "No messages";
         button.appendChild(head); button.appendChild(meta); button.appendChild(last);
@@ -583,11 +607,11 @@
     }
     function renderDetail(p) {
       var title = el("crm-selected-title");
-      if (title) title.textContent = safeText(p.name || p.id);
+      if (title) title.textContent = partyText(p, p.name || p.id);
       var badges = el("crm-selected-badges");
       if (badges) {
         badges.innerHTML = "";
-        [[PARTIES[p.party_type] || "", "party"], [p.unanswered ? "Awaiting reply" : "", "due"], [p.do_not_contact ? "Do not contact" : "", "dnc"],
+        [[isStaffParty(p) ? "Staff" : (PARTIES[p.party_type] || ""), "party"], [p.unanswered ? "Awaiting reply" : "", "due"], [p.do_not_contact ? "Do not contact" : "", "dnc"],
          [p.human_takeover ? "Human takeover" : "", "takeover"]].forEach(function (b) {
           if (!b[0]) return;
           var s = document.createElement("span"); s.className = "crm-badge crm-badge-" + b[1]; s.textContent = b[0]; badges.appendChild(s);
@@ -596,22 +620,22 @@
       var facts = el("crm-facts");
       if (facts) {
         facts.innerHTML = "";
-        addFact(facts, "Type", KINDS[p.kind] || p.kind);
+        addFact(facts, "Type", isStaffParty(p) ? "Staff" : (KINDS[p.kind] || p.kind));
         addFact(facts, "Stage", stageLabel(p.stage));
-        addFact(facts, "Country", safeText(p.country || ""));
-        addFact(facts, "Location", safeText(p.location || ""));
-        addFact(facts, "Language", safeText(p.language || ""));
+        addFact(facts, "Country", partyText(p, p.country || ""));
+        addFact(facts, "Location", partyText(p, p.location || ""));
+        addFact(facts, "Language", partyText(p, p.language || ""));
         var interest = p.interest && typeof p.interest === "object" ? p.interest : {};
-        var bits = Object.keys(interest).map(function (k) { return (INTEREST[k] || k) + " " + safeText(interest[k]); });
+        var bits = Object.keys(interest).map(function (k) { return (INTEREST[k] || k) + " " + partyText(p, interest[k]); });
         addFact(facts, "Need", bits);
         addFact(facts, "First contact", p.first_seen ? displayTime(p.first_seen) : "");
         addFact(facts, "Last inbound", p.last_inbound_at ? displayTime(p.last_inbound_at) : "");
         addFact(facts, "Last reply", p.last_outbound_at ? displayTime(p.last_outbound_at) : "");
-        addFact(facts, "Do-not-contact reason", safeText(p.dnc_reason || ""));
-        addFact(facts, "Summary", safeText(p.summary || ""));
-        addFact(facts, "Notes", safeText(p.notes || ""));
+        addFact(facts, "Do-not-contact reason", partyText(p, p.dnc_reason || ""));
+        addFact(facts, "Summary", partyText(p, p.summary || ""));
+        addFact(facts, "Notes", partyText(p, p.notes || ""));
         if (p.supplier) {
-          addFact(facts, "Supplier name", safeText(p.supplier.supplier_name || ""));
+          addFact(facts, "Supplier name", partyText(p, p.supplier.supplier_name || ""));
           addFact(facts, "Brands supplied", (p.supplier.brands || []).map(safeText));
           addFact(facts, "Models supplied", (p.supplier.models || []).map(safeText));
           addFact(facts, "Regions", (p.supplier.regions || []).map(safeText));
@@ -628,8 +652,8 @@
         var ul = document.createElement("ul");
         (p.identities || []).forEach(function (i) {
           var li = document.createElement("li");
-          li.textContent = channelLabel(i.channel) + ": " + safeText(i.handle || "") +
-            (i.display_name ? " (" + safeText(i.display_name) + ")" : "") + (i.verified ? " · Verified" : " · Not verified");
+          li.textContent = channelLabel(i.channel) + ": " + (isStaffParty(p) ? staffMask(i.handle) : partyText(p, i.handle || "")) +
+            (i.display_name ? " (" + partyText(p, i.display_name) + ")" : "") + (i.verified ? " · Verified" : " · Not verified");
           ul.appendChild(li);
         });
         if (!ul.childNodes.length) { var none = document.createElement("p"); none.textContent = "No identities on record."; ids.appendChild(none); }
@@ -647,7 +671,9 @@
           (t.direction === "out" ? " crm-status-" + statusClass(t.status) : "");
         var meta = document.createElement("div");
         meta.className = "client-message-meta";
-        meta.textContent = [DIRECTIONS[t.direction] || "", channelLabel(t.channel), displayTime(t.ts)].filter(Boolean).join(" · ");
+        var when = displayTime(t.ts);
+        if (t.ts_precision === "unknown" || t.ts_approximate) when = "≈ " + when + " (approximate)";
+        meta.textContent = [DIRECTIONS[t.direction] || "", channelLabel(t.channel), when].filter(Boolean).join(" · ");
         if (st) {
           var canApprove = state.commandsAvailable !== false && t.direction === "out" && t.status === "drafted" && t.id != null;
           var tag = document.createElement(canApprove ? "button" : "span");
@@ -670,13 +696,13 @@
         }
         var body = document.createElement("div");
         body.className = "client-message-text";
-        body.textContent = turnText(t);
+        body.textContent = (t.text_missing || !String(t.text || "").trim()) ? partyText(p, turnText(t)) : partyText(p, t.text);
         item.appendChild(meta); item.appendChild(body);
         var zh = translationText(t);
         if (zh) {
           var gloss = document.createElement("div");
           gloss.className = "crm-text-zh";
-          gloss.textContent = zh;
+          gloss.textContent = isStaffParty(p) ? partyText(p, t.text_zh) : zh;
           item.appendChild(gloss);
         }
         chat.appendChild(item);
@@ -874,8 +900,10 @@
     if (clean === LIST_PATH) {
       var params = {};
       (parts[1] || "").split("&").forEach(function (kv) { var i = kv.indexOf("="); if (i > 0) params[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); });
+      var want = params.party || "buyer";
       var items = parties.filter(function (p) {
-        return (params.party === "all" || p.party_type === (params.party || "buyer")) &&
+        var partyOk = want === "all" || (want === "buyer" ? (p.party_type === "buyer" || p.party_type === "internal") : p.party_type === want);
+        return partyOk &&
           (!params.channel || (p.channels || []).indexOf(params.channel) !== -1) &&
           (!params.stage || p.stage === params.stage) && (!params.unanswered || p.unanswered) &&
           (!params.q || JSON.stringify(p).toLowerCase().indexOf(params.q.toLowerCase()) !== -1);

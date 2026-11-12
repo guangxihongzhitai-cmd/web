@@ -504,5 +504,5 @@ test("Sync now: a failed status read releases the button and keeps polling", () 
 test("html: Refresh unchanged, Sync now sits right after it, cache-bust bumped", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "tbot-ui.html"), "utf8");
   assert.ok(html.includes('data-action="crm-refresh">Refresh</button><button class="module-action" type="button" id="crm-sync-now" data-action="crm-sync">Sync now</button>'));
-  assert.ok(html.includes("tbot-ui-live-crm.js?v=20261023-en1"));
+  assert.ok(html.includes("tbot-ui-live-crm.js?v=20261112-en2"));
 });
